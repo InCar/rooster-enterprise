@@ -30,7 +30,7 @@ public class Producer {
     private String topic;
 
 
-    private Producer(String topic, Properties props) {
+    public Producer(String topic, Properties props) {
         if (null == topic || null == props) {
             throw new IllegalArgumentException();
         }
