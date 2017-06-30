@@ -9,6 +9,7 @@ import org.apache.kafka.clients.producer.RecordMetadata;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
 import java.util.Random;
@@ -61,22 +62,33 @@ public class Producer {
      * 发送消息
      *
      * @param content 内容
+     * @return offset
      */
-    public void send(String content) {
+    public long send(String content) {
 
         //key是为了确定丢到哪个partition
         String key = new Random().nextInt(100) + "";
-        /*Future<RecordMetadata>  future = */
-        producer.send(new ProducerRecord<String, String>(topic, key, content),
-                new Callback() {
-                    @Override
-                    public void onCompletion(RecordMetadata metadata, Exception exception) {
-                        s_logger.debug("callback  " + metadata);
-                    }
-                });
+        try {
+            Future<RecordMetadata> future =
+                    producer.send(new ProducerRecord<String, String>(topic, key, content),
+                            new Callback() {
+                                @Override
+                                public void onCompletion(RecordMetadata metadata, Exception exception) {
+                                    s_logger.debug("callback  " + metadata);
+                                }
+                            });
 
 
-//        future.get()
+//        future.get();
+            long offset = future.get().offset();
+            s_logger.debug("success send ,offset " + offset);
+
+            return offset;
+        } catch (Exception e) {
+            s_logger.error(e.getMessage());
+        }
+
+        return -1;
     }
 
     /**
@@ -84,28 +96,47 @@ public class Producer {
      *
      * @param contents 内容
      */
-    public void batchSend(List<String> contents){
+    public List<Long> batchSend(List<String> contents) {
 
-        if(null == contents || 0 == contents.size()){
+        if (null == contents || 0 == contents.size()) {
             throw new IllegalArgumentException();
         }
 
-        for (String  content: contents) {
-            String key = new Random().nextInt(100) + "";
-            producer.send(new ProducerRecord<String, String>(topic, key, content),
-                    new Callback() {
-                        @Override
-                        public void onCompletion(RecordMetadata metadata, Exception exception) {
-                            s_logger.debug("callback  " + metadata);
-                        }
-                    });
+        List<Long> offsetList = new ArrayList<>(contents.size());
+
+        try {
+            for (String content : contents) {
+                String key = new Random().nextInt(100) + "";
+
+                Future<RecordMetadata> future =
+                        producer.send(new ProducerRecord<String, String>(topic, key, content),
+                                new Callback() {
+                                    @Override
+                                    public void onCompletion(RecordMetadata metadata, Exception exception) {
+                                        s_logger.debug("callback  " + metadata);
+                                    }
+                                });
+
+
+//        future.get();
+                long offset = future.get().offset();
+                s_logger.debug("success send ,offset " + offset);
+                offsetList.add(offset);
+
+            }
+
+        } catch (Exception e) {
+            for (int i = offsetList.size(); i < contents.size(); i++) {
+                offsetList.add(-1L);
+            }
+
+            s_logger.error(e.getMessage());
         }
 
+
+        return offsetList;
+
     }
-
-
-
-
 
 
 }
