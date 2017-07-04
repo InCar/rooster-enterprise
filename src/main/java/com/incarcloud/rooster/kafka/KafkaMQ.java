@@ -6,6 +6,7 @@ import com.incarcloud.rooster.mq.IBigMQ;
 import com.incarcloud.rooster.mq.MQException;
 import com.incarcloud.rooster.mq.MQMsg;
 import com.incarcloud.rooster.mq.MqSendResult;
+import com.incarcloud.rooster.util.MQMsgUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -32,7 +33,7 @@ public class KafkaMQ implements IBigMQ {
             throw new IllegalArgumentException();
         }
 
-        long offset = producer.send(convertMQMsgToStr(msg));
+        long offset = producer.send(MQMsgUtil.convertMQMsgToStr(msg));
 
         if (-1 != offset) {
             return new MqSendResult(null, offset);
@@ -48,7 +49,7 @@ public class KafkaMQ implements IBigMQ {
 
         List<String> contentList = new ArrayList<>(listMsgs.size());
         for (MQMsg msg : listMsgs) {
-            contentList.add(convertMQMsgToStr(msg));
+            contentList.add(MQMsgUtil.convertMQMsgToStr(msg));
         }
 
         List<MqSendResult> resultList = new ArrayList<>(listMsgs.size());
@@ -67,38 +68,10 @@ public class KafkaMQ implements IBigMQ {
     }
 
 
-    /**
-     * 将消息对象转换为字符串
-     *
-     * @param msg
-     * @return
-     */
-    private String convertMQMsgToStr(MQMsg msg) {
-        return msg.getMark() + "->" + msg.getDataB64();
-    }
+    public List<MQMsg> batchReceive(int size) {
+        //TODO 接收消息
 
-    /**
-     * 将字符串转换为消息对象
-     *
-     * @param s
-     * @return
-     */
-    private MQMsg convertStrToMQMsg(String s){
-        if(null == s  || !s.contains("->")){
-            return null;
-        }
-
-
-        try {
-            MQMsg msg = new MQMsg();
-            msg.setMark(s.split("\\->")[0]);
-            msg.setData(Base64.getDecoder().decode(s.split("\\->")[1]));
-
-            return msg;
-        }catch (Exception e){
-            s_logger.error(e.getMessage());
-            return  null;
-        }
+        return null;
     }
 
 }
