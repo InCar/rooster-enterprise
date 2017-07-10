@@ -17,29 +17,22 @@ import java.util.concurrent.Future;
 
 /**
  * @author Fan Beibei
- * @Description: 描述
+ * @Description: 生产者（线程安全）
  * @date 2017/6/28 14:12
  */
 public class Producer {
     private static Logger s_logger = LoggerFactory.getLogger(Producer.class);
 
-    private KafkaProducer<String, String> producer;
-    /**
-     * 主题
-     */
-    private String topic;
+    private KafkaProducer<String, byte[]> producer;
 
 
-    public Producer(String topic, Properties props) {
-        if (null == topic || null == props) {
+    public Producer(Properties props) {
+        if (!validConf(props)) {
             throw new IllegalArgumentException();
         }
 
-        this.topic = topic;
-
 
 //        props.put("bootstrap.servers", "localhost:9092");
-
 
         //以下的配置是不能覆盖的
         props.put("acks", "all");//all表示所有partition都写入才确认，1表示主partition写入即确认，0表示发送后不确认
@@ -49,28 +42,42 @@ public class Producer {
         props.put("buffer.memory", 33554432);//缓存大小
 //        props.put("compression.type", "gzip");//压缩方式，目前支持gzip, snappy和lz4
 
-        props.put("key.serializer", "org.apache.kafka.common.serialization.StringSerializer");// ByteArraySerializer
-        props.put("value.serializer", "org.apache.kafka.common.serialization.StringSerializer");
+        props.put("key.serializer", "org.apache.kafka.common.serialization.StringSerializer");
+        props.put("value.serializer", "org.apache.kafka.common.serialization.ByteArraySerializer");
         props.put("partitioner.class", "com.incarcloud.rooster.kafka.RandomPartition");
-
         producer = new KafkaProducer<>(props);
+    }
 
+    protected boolean validConf(Properties props) {
+        if (null == props) {
+            return false;
+        }
+
+
+        if (null == props.get("bootstrap.servers")) {
+            s_logger.error("bootstrap.servers is null !!");
+            return false;
+        }
+
+        return true;
     }
 
 
     /**
      * 发送消息
      *
+     * @param topic   主题
      * @param content 内容
      * @return offset
      */
-    public long send(String content) {
+    public long send(String topic, byte[] content) {
 
         //key是为了确定丢到哪个partition
         String key = new Random().nextInt(100) + "";
         try {
+
             Future<RecordMetadata> future =
-                    producer.send(new ProducerRecord<String, String>(topic, key, content),
+                    producer.send(new ProducerRecord<String, byte[]>(topic, key, content),
                             new Callback() {
                                 @Override
                                 public void onCompletion(RecordMetadata metadata, Exception exception) {
@@ -94,9 +101,10 @@ public class Producer {
     /**
      * 批量发送
      *
+     * @param topic    主题
      * @param contents 内容
      */
-    public List<Long> batchSend(List<String> contents) {
+    public List<Long> batchSend(String topic, List<byte[]> contents) {
 
         if (null == contents || 0 == contents.size()) {
             throw new IllegalArgumentException();
@@ -105,11 +113,11 @@ public class Producer {
         List<Long> offsetList = new ArrayList<>(contents.size());
 
         try {
-            for (String content : contents) {
+            for (byte[] content : contents) {
                 String key = new Random().nextInt(100) + "";
 
                 Future<RecordMetadata> future =
-                        producer.send(new ProducerRecord<String, String>(topic, key, content),
+                        producer.send(new ProducerRecord<String, byte[]>(topic, key, content),
                                 new Callback() {
                                     @Override
                                     public void onCompletion(RecordMetadata metadata, Exception exception) {
@@ -135,7 +143,13 @@ public class Producer {
 
 
         return offsetList;
+    }
 
+    /**
+     * 关闭释放生产者
+     */
+    public void close() {
+        producer.close();
     }
 
 
