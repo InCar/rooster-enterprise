@@ -26,11 +26,24 @@ public class Consumer {
 
     private KafkaConsumer<String, byte[]> consumer;
 
+    /**
+     * 订阅主题
+     */
+    private List<String> topicList;
+
 
     /**
+     * @param topicList  订阅主题
      * @param props 消费者配置
      */
-    public Consumer(Properties props) {
+    public Consumer(List<String> topicList,Properties props) {
+
+        if(null == topicList || 0 == topicList.size()){
+            throw new IllegalArgumentException();
+        }
+
+        this.topicList = topicList;
+
         if (!validConf(props)) {
             throw new IllegalArgumentException();
         }
@@ -45,13 +58,19 @@ public class Consumer {
 
         props.put("session.timeout.ms", "30000");// Consumer向集群发送自己的心跳，超时则认为Consumer已经死了，kafka会把它的分区分配给其他进程
         props.put("key.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");// 反序列化器
-        props.put("value.deserializer", "org.apache.kafka.common.serialization.ByteArraySerializer");
+        props.put("value.deserializer", "org.apache.kafka.common.serialization.ByteArrayDeserializer");
         props.put("max.poll.records", "50");
 
         this.consumer = new KafkaConsumer<String, byte[]>(props);
+        consumer.subscribe(topicList);
     }
 
 
+    /**
+     * 验证参数
+     * @param props
+     * @return
+     */
     protected boolean validConf(Properties props) {
         if (null == props) {
             return false;
@@ -72,35 +91,32 @@ public class Consumer {
     }
 
     /**
-     * @param topicList 订阅主题
      * @param size      批次大小
      * @return
      */
-    public List<MQMsg> batchReceive(List<String> topicList, int size) {
-        if (null == topicList || size <= 0) {
-            throw new IllegalArgumentException();
-        }
-
-
+    public List<MQMsg> batchReceive(int size) {
         List<MQMsg> msgList = new ArrayList<>(size);
 
         try {
             ConsumerRecords<String, byte[]> records = consumer.poll(500);
+            if (null == records){
+                return null;
+            }
             for (TopicPartition partition : records.partitions()) {
                 List<ConsumerRecord<String, byte[]>> partitionRecords = records.records(partition);
                 for (ConsumerRecord<String, byte[]> record : partitionRecords) {
-                    System.out.println("now consumer the message it's offset is :" + record.offset()
+                    s_logger.debug("now consumer the message it's offset is :" + record.offset()
                             + " and the value is :" + record.value());
 
                     msgList.add(MQMsg.deserializeFromBytes(record.value()));
 
                 }
                 long lastOffset = partitionRecords.get(partitionRecords.size() - 1).offset();
-                System.out.println("now commit the partition[ " + partition.partition() + "] offset");
+                s_logger.debug("now commit the partition[ " + partition.partition() + "] offset");
                 consumer.commitSync(Collections.singletonMap(partition, new OffsetAndMetadata(lastOffset + 1)));
             }
         } catch (Exception e) {
-
+            s_logger.error(e.getMessage());
         }
 
 
