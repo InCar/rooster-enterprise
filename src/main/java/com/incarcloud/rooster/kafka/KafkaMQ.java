@@ -12,6 +12,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
 
@@ -143,21 +144,21 @@ public class KafkaMQ implements IBigMQ {
 
         Consumer consumer = currentConsumer();
 
-
-        return null;
+        return consumer.batchReceive(size);
     }
 
     @Override
-    public void close(){
-
-        if(null != producer){
-            producer.close();
+    public void close() {
+        synchronized (this) {//释放生产者
+            if (null != producer) {
+                producer.close();
+                producer = null;
+            }
         }
 
-        //释放当前线程的消费者
-        Consumer consumer = currentConsumer();
-        if(null != consumer){
-            consumer.close();
+        if(null != consumerConf) {
+            //释放当前线程的消费者
+            releaseCurrentConsumer();
         }
     }
 
@@ -178,10 +179,22 @@ public class KafkaMQ implements IBigMQ {
             return consumer;
         }
 
-        consumer = new Consumer(consumerConf);
+        consumer = new Consumer(Arrays.asList(topic), consumerConf);
         consumerThreadLocal.set(consumer);
 
         return consumer;
+    }
+
+
+    /**
+     * 释放当前的消费者
+     */
+    private void releaseCurrentConsumer() {
+        Consumer consumer = currentConsumer();
+        if (null != consumer) {
+            consumer.close();
+            consumerThreadLocal.set(null);
+        }
     }
 
 }

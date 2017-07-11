@@ -48,6 +48,11 @@ public class Producer {
         producer = new KafkaProducer<>(props);
     }
 
+    /**
+     * 验证参数
+     * @param props
+     * @return
+     */
     protected boolean validConf(Properties props) {
         if (null == props) {
             return false;
