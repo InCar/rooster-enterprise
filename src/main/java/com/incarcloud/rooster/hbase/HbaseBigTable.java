@@ -95,13 +95,11 @@ public class HbaseBigTable implements IBigTable {
 
     @Override
     public void close() {
-        synchronized (this) {
-            if (null != connection) {
-                try {
-                    connection.close();
-                } catch (IOException e) {
-                    s_logger.error(e.getMessage());
-                }
+        if (null != connection) {
+            try {
+                connection.close();
+            } catch (IOException e) {
+                s_logger.error(e.getMessage());
             }
         }
 

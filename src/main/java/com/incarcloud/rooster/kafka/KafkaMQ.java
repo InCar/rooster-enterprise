@@ -149,19 +149,21 @@ public class KafkaMQ implements IBigMQ {
 
     @Override
     public void close() {
-        synchronized (this) {//释放生产者
-            if (null != producer) {
-                producer.close();
-                producer = null;
-            }
+        if(null != producer){
+            producer.close();
         }
+    }
+
+
+    @Override
+    public void releaseCurrentConn() {
+        //producer是单例的线程安全模型不需要释放
 
         if(null != consumerConf) {
             //释放当前线程的消费者
             releaseCurrentConsumer();
         }
     }
-
 
     /**
      * 由于kafka的consumer是非线程安全，所以用ThreadLocal解决一个线程一个的问题
