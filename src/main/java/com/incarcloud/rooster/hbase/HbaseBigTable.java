@@ -3,8 +3,8 @@ package com.incarcloud.rooster.hbase;/**
  */
 
 import com.incarcloud.rooster.bigtable.IBigTable;
-import com.incarcloud.rooster.datatarget.DataTarget;
-import com.incarcloud.rooster.util.DataTargetUtils;
+import com.incarcloud.rooster.datapack.DataPackObject;
+import com.incarcloud.rooster.util.DataPackObjectUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.TableName;
@@ -84,12 +84,12 @@ public class HbaseBigTable implements IBigTable {
     }
 
     @Override
-    public void save(String rowKey, DataTarget data, String tableName) throws Exception {
+    public void save(String rowKey, DataPackObject data, String tableName) throws Exception {
         Table table = connection.getTable(TableName.valueOf(tableName));//tabel对象线程不安全
 
         Put put = new Put(rowKey.getBytes());// 一个PUT代表一行数据，再NEW一个PUT表示第二行数据,每行一个唯一的ROWKEY，此处rowkey为put构造方法中传入的值
         put.addColumn(COLUMN_FAMILY.getBytes("UTF-8"), COLUMN_DATA.getBytes("UTF-8"),
-                DataTargetUtils.toJson(data).getBytes("UTF-8"));
+                DataPackObjectUtils.toJson(data).getBytes("UTF-8"));
         table.put(put);
     }
 
