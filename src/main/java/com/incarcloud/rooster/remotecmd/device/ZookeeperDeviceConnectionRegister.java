@@ -1,7 +1,8 @@
-package com.incarcloud.rooster.gather.cmd.device;/**
+package com.incarcloud.rooster.remotecmd.device;/**
  * Created by fanbeibei on 2017/7/19.
  */
 
+import com.incarcloud.rooster.gather.cmd.device.DeviceConnectionRemoteRegister;
 import org.I0Itec.zkclient.ZkClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

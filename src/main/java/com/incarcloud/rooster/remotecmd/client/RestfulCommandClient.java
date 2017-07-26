@@ -1,4 +1,4 @@
-package com.incarcloud.rooster.gather.cmd.client;/**
+package com.incarcloud.rooster.remotecmd.client;/**
  * Created by fanbeibei on 2017/7/19.
  */
 
@@ -6,7 +6,8 @@ import com.google.gson.Gson;
 import com.incarcloud.rooster.gather.cmd.CommandType;
 import com.incarcloud.rooster.gather.cmd.ReqContent;
 import com.incarcloud.rooster.gather.cmd.RespContent;
-import com.incarcloud.rooster.gather.cmd.util.HttpClientUtil;
+import com.incarcloud.rooster.gather.cmd.client.AbstractCommandClient;
+import com.incarcloud.rooster.util.HttpClientUtil;
 import com.incarcloud.rooster.util.StringUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -39,8 +40,6 @@ public  abstract class RestfulCommandClient extends AbstractCommandClient {
         RespContent resp = gson.fromJson(result, RespContent.class);
 
         return resp;
-
-
     }
 
 

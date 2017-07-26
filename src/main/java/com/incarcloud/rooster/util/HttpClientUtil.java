@@ -1,6 +1,5 @@
-package com.incarcloud.rooster.gather.cmd.util;
+package com.incarcloud.rooster.util;
 
-import com.incarcloud.rooster.util.StringUtil;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpHost;
 import org.apache.http.HttpResponse;

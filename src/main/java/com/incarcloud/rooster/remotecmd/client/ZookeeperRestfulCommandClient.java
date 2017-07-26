@@ -1,4 +1,4 @@
-package com.incarcloud.rooster.gather.cmd.client;/**
+package com.incarcloud.rooster.remotecmd.client;/**
  * Created by fanbeibei on 2017/7/19.
  */
 
@@ -6,7 +6,8 @@ import com.google.gson.Gson;
 import com.incarcloud.rooster.gather.cmd.CommandType;
 import com.incarcloud.rooster.gather.cmd.ReqContent;
 import com.incarcloud.rooster.gather.cmd.RespContent;
-import com.incarcloud.rooster.gather.cmd.util.HttpClientUtil;
+import com.incarcloud.rooster.gather.cmd.client.AbstractCommandClient;
+import com.incarcloud.rooster.util.HttpClientUtil;
 import com.incarcloud.rooster.util.StringUtil;
 import org.I0Itec.zkclient.IZkChildListener;
 import org.I0Itec.zkclient.IZkDataListener;
@@ -22,7 +23,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * @Description: 描述
  * @date 2017/7/19 17:02
  */
-public class ZookeeperRestfulCommandClient extends AbstractCommandClient {
+public class ZookeeperRestfulCommandClient extends RestfulCommandClient {
     private static Logger s_logger = LoggerFactory.getLogger(ZookeeperRestfulCommandClient.class);
 
 
@@ -93,31 +94,10 @@ public class ZookeeperRestfulCommandClient extends AbstractCommandClient {
         return null;
     }
 
+
     /**
-     * @param url     服务端地址
-     * @param vin     车辆vin码
-     * @param command 指令类型
-     * @throws Exception
+     * 监听子节点创建和删除事件的监听器
      */
-    @Override
-    public RespContent sendCommand(String url, String vin, CommandType command) throws Exception {
-        if (StringUtil.isBlank(url) || StringUtil.isBlank(vin) || null == command) {
-            throw new IllegalArgumentException();
-        }
-
-        ReqContent req = new ReqContent(command, vin);
-
-        Gson gson = new Gson();
-        String result = HttpClientUtil.postJson(url, gson.toJson(req));
-
-        RespContent resp = gson.fromJson(result, RespContent.class);
-
-        return resp;
-
-
-    }
-
-
     private IZkChildListener childListener = new IZkChildListener() {
         @Override
         public void handleChildChange(String parentPath, List<String> currentChilds) throws Exception {
@@ -134,6 +114,9 @@ public class ZookeeperRestfulCommandClient extends AbstractCommandClient {
         }
     };
 
+    /**
+     * 监听某个节点版本变化和删除的事件的监听器
+     */
     private IZkDataListener dataListener = new IZkDataListener() {
         @Override
         public void handleDataChange(String dataPath, Object data) throws Exception {
