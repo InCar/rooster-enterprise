@@ -43,7 +43,7 @@ public class ZookeeperRestfulCommandClient extends RestfulCommandClient {
      * @param zkzServer zookeeper集群地址，  ip:端口,ip:端口,ip:端口
      */
     public ZookeeperRestfulCommandClient(String zkzServer) {
-        zk = new ZkClient(zkzServer);
+        zk = new ZkClient(zkzServer,1000,5000);
         init();
     }
 
