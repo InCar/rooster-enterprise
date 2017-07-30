@@ -20,7 +20,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * @author Fan Beibei
- * @Description: 描述
+ * @Description: 依赖zookeeper的远程命令客户端
  * @date 2017/7/19 17:02
  */
 public class ZookeeperRestfulCommandClient extends RestfulCommandClient {
