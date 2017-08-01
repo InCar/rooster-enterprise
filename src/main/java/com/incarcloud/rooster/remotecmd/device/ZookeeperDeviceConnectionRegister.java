@@ -9,7 +9,7 @@ import org.slf4j.LoggerFactory;
 
 /**
  * @author Fan Beibei
- * @Description: zookeeper实现的注册器
+ * @Description: zookeeper实现的注册器   //TODO 未考虑注册中心挂掉的情况
  * @date 2017/7/19 11:43
  */
 public class ZookeeperDeviceConnectionRegister implements DeviceConnectionRemoteRegister {
