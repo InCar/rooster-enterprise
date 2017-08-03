@@ -1,0 +1,4 @@
+# 建表shell
+create 'telemetry','base'
+create 'second_index','base'
+create 'vehicle','base'
