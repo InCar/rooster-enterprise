@@ -5,6 +5,7 @@ package com.incarcloud.rooster.hbase;/**
 import com.incarcloud.rooster.bigtable.IBigTable;
 import com.incarcloud.rooster.datapack.DataPackObject;
 import com.incarcloud.rooster.util.DataPackObjectUtils;
+import com.incarcloud.rooster.util.RowKeyUtil;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.TableName;
@@ -25,6 +26,14 @@ import java.util.Properties;
  */
 public class HbaseBigTable implements IBigTable {
     private static Logger s_logger = LoggerFactory.getLogger(HbaseBigTable.class);
+    /**
+     * 保存vin码的表
+     */
+    private static final String VIN_TABLE = "vehicle";
+    /**
+     * 二级索引表
+     */
+    private static final String SECOND_INDEX_TABLE = "second_index";
 
     /**
      * 列族
@@ -46,7 +55,7 @@ public class HbaseBigTable implements IBigTable {
         }
 
         if (null == System.getenv("HADOOP_HOME")) {
-            throw new IllegalArgumentException("hadoop home is null!!");
+            throw new IllegalArgumentException("environment variable  HADOOP_HOME is null!!");
         }
 
         Configuration configuration = HBaseConfiguration.create();
@@ -84,13 +93,36 @@ public class HbaseBigTable implements IBigTable {
     }
 
     @Override
-    public void save(String rowKey, DataPackObject data, String tableName) throws Exception {
-        Table table = connection.getTable(TableName.valueOf(tableName));//tabel对象线程不安全
+    public void saveDataPackObject(String rowKey, DataPackObject data) throws Exception {
 
-        Put put = new Put(rowKey.getBytes());// 一个PUT代表一行数据，再NEW一个PUT表示第二行数据,每行一个唯一的ROWKEY，此处rowkey为put构造方法中传入的值
-        put.addColumn(COLUMN_FAMILY.getBytes("UTF-8"), COLUMN_DATA.getBytes("UTF-8"),
+        //保存二级索引
+        Table indexTable = connection.getTable(TableName.valueOf(SECOND_INDEX_TABLE));
+        String secondIndexRowKey = RowKeyUtil.makeDetectionTimeIndexRowKey(DataPackObjectUtils.convertDetectionDateToString(data.getDetectionTime()),
+                data.getVin(), DataPackObjectUtils.getDataType(data));
+        Put indexPut = new Put(secondIndexRowKey.getBytes());// 一个PUT代表一行数据，再NEW一个PUT表示第二行数据,每行一个唯一的ROWKEY，此处rowkey为put构造方法中传入的值
+        indexPut.addColumn(COLUMN_FAMILY.getBytes("UTF-8"), COLUMN_DATA.getBytes("UTF-8"),
+                rowKey.getBytes("UTF-8"));
+        indexTable.put(indexPut);
+
+
+        //保存数据
+        Table dataTable = connection.getTable(TableName.valueOf(DataPackObjectUtils.getTableName(DataPackObjectUtils.getDataType(data))));//tabel对象线程不安全
+        Put dataPut = new Put(rowKey.getBytes());// 一个PUT代表一行数据，再NEW一个PUT表示第二行数据,每行一个唯一的ROWKEY，此处rowkey为put构造方法中传入的值
+        dataPut.addColumn(COLUMN_FAMILY.getBytes("UTF-8"), COLUMN_DATA.getBytes("UTF-8"),
                 DataPackObjectUtils.toJson(data).getBytes("UTF-8"));
-        table.put(put);
+        dataTable.put(dataPut);
+    }
+
+
+    @Override
+    public void saveVin(String vin) throws Exception {
+
+        Table dataTable = connection.getTable(TableName.valueOf(VIN_TABLE));//tabel对象线程不安全
+        Put dataPut = new Put(vin.getBytes());// 一个PUT代表一行数据，再NEW一个PUT表示第二行数据,每行一个唯一的ROWKEY，此处rowkey为put构造方法中传入的值
+        dataPut.addColumn(COLUMN_FAMILY.getBytes("UTF-8"), COLUMN_DATA.getBytes("UTF-8"),
+                vin.getBytes("UTF-8"));
+        dataTable.put(dataPut);
+
     }
 
     @Override
