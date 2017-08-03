@@ -111,6 +111,8 @@ public class HbaseBigTable implements IBigTable {
         dataPut.addColumn(COLUMN_FAMILY.getBytes("UTF-8"), COLUMN_DATA.getBytes("UTF-8"),
                 DataPackObjectUtils.toJson(data).getBytes("UTF-8"));
         dataTable.put(dataPut);
+
+        s_logger.debug("saveDataPackObject success.  "+rowKey);
     }
 
 
@@ -122,6 +124,8 @@ public class HbaseBigTable implements IBigTable {
         dataPut.addColumn(COLUMN_FAMILY.getBytes("UTF-8"), COLUMN_DATA.getBytes("UTF-8"),
                 vin.getBytes("UTF-8"));
         dataTable.put(dataPut);
+
+        s_logger.debug("save  vin  success.  "+vin);
 
     }
 
