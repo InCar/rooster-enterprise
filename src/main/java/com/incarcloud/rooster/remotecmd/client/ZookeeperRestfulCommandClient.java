@@ -15,6 +15,7 @@ import org.I0Itec.zkclient.ZkClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -129,7 +130,7 @@ public class ZookeeperRestfulCommandClient extends RestfulCommandClient {
         }
 
         @Override
-        public void handleDataDeleted(String dataPath) throws Exception {
+        public void handleDataDeleted(String dataPath) throws IOException {
             s_logger.debug("handleDataDeleted  " + dataPath);
             vinUrlMap.remove(dataPath);
         }
