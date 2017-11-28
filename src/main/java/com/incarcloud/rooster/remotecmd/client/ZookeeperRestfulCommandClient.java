@@ -2,13 +2,6 @@ package com.incarcloud.rooster.remotecmd.client;/**
  * Created by fanbeibei on 2017/7/19.
  */
 
-import com.google.gson.Gson;
-import com.incarcloud.rooster.gather.cmd.CommandType;
-import com.incarcloud.rooster.gather.cmd.ReqContent;
-import com.incarcloud.rooster.gather.cmd.RespContent;
-import com.incarcloud.rooster.gather.cmd.client.AbstractCommandClient;
-import com.incarcloud.rooster.util.HttpClientUtil;
-import com.incarcloud.rooster.util.StringUtil;
 import org.I0Itec.zkclient.IZkChildListener;
 import org.I0Itec.zkclient.IZkDataListener;
 import org.I0Itec.zkclient.ZkClient;

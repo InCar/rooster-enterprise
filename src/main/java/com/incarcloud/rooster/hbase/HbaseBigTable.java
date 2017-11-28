@@ -17,6 +17,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.util.Date;
+import java.util.List;
 import java.util.Properties;
 
 /**
@@ -93,7 +95,7 @@ public class HbaseBigTable implements IBigTable {
     }
 
     @Override
-    public void saveDataPackObject(String rowKey, DataPackObject data) throws Exception {
+    public void saveDataPackObject(String rowKey, DataPackObject data, Date recieveTime) throws Exception {
 
         //保存二级索引
         Table indexTable = connection.getTable(TableName.valueOf(SECOND_INDEX_TABLE));
@@ -112,9 +114,10 @@ public class HbaseBigTable implements IBigTable {
                 DataPackObjectUtils.toJson(data).getBytes("UTF-8"));
         dataTable.put(dataPut);
 
+        // TODO recieveTime 接收时间
+
         s_logger.debug("saveDataPackObject success.  "+rowKey);
     }
-
 
     @Override
     public void saveVin(String vin) throws Exception {
@@ -127,6 +130,18 @@ public class HbaseBigTable implements IBigTable {
 
         s_logger.debug("save  vin  success.  "+vin);
 
+    }
+
+    @Override
+    public String queryData(String startTimeRowKey, IDataReadable dataReadable) {
+        // TODO 查询数据
+        return null;
+    }
+
+    @Override
+    public <T extends DataPackObject> List<T> queryData(String vinOrCode, Class<T> clazz, Date startTime, Date endTime) {
+        // TODO 根据开始和结束时间查询数据
+        return null;
     }
 
     @Override

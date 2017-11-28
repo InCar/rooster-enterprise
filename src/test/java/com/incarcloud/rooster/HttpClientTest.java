@@ -4,6 +4,8 @@ package com.incarcloud.rooster;/**
 
 
 import com.incarcloud.rooster.util.HttpClientUtil;
+import org.junit.Ignore;
+import org.junit.Test;
 
 /**
  * @author Fan Beibei
@@ -11,7 +13,9 @@ import com.incarcloud.rooster.util.HttpClientUtil;
  * @date 2017/7/20 10:35
  */
 public class HttpClientTest {
-//    @Test
+
+    @Test
+    @Ignore
     public void testPostJson(){
         String url = "http://127.0.0.1:6666/rest";
         String data = "{\"cmdType\":\"OPEN_DOOR\",\"vin\":\"1A1JC5444R7252367\"}";
