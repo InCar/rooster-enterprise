@@ -12,6 +12,8 @@ import com.incarcloud.rooster.util.StringUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
+
 /**
  * @author Fan Beibei
  * @Description: restful客户端
@@ -27,12 +29,12 @@ public  abstract class RestfulCommandClient extends AbstractCommandClient {
      * @throws Exception
      */
     @Override
-    public RespContent sendCommand(String url, String vin, CommandType command) throws Exception {
+    public RespContent sendCommand(String url, String vin, CommandType command, Object[] args) throws IOException {
         if (StringUtil.isBlank(url) || StringUtil.isBlank(vin) || null == command) {
             throw new IllegalArgumentException();
         }
 
-        ReqContent req = new ReqContent(command, vin);
+        ReqContent req = new ReqContent(command, vin, args);
 
         Gson gson = new Gson();
         String result = HttpClientUtil.postJson(url, gson.toJson(req));
