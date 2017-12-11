@@ -60,6 +60,7 @@ public class HbaseBigTableTest {
     }
 
     @Test
+    @Ignore
     public void testQueryDataList() throws Exception {
         // TODO queryDataList
     }
