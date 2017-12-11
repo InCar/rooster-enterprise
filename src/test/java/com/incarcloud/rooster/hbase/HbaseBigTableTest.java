@@ -62,7 +62,6 @@ public class HbaseBigTableTest {
     @Test
     public void testQueryDataList() throws Exception {
         // TODO queryDataList
-        System.out.println(bigTable);
     }
 
     @Test
