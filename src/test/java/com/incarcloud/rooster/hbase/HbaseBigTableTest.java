@@ -54,9 +54,9 @@ public class HbaseBigTableTest {
     }
 
     @Test
+    @Ignore
     public void testQueryData() throws Exception {
         // TODO queryData
-        System.out.println(bigTable);
     }
 
     @Test
