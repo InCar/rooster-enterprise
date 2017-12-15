@@ -13,6 +13,10 @@ import org.apache.hadoop.hbase.HColumnDescriptor;
 import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.*;
+import org.apache.hadoop.hbase.filter.CompareFilter;
+import org.apache.hadoop.hbase.filter.Filter;
+import org.apache.hadoop.hbase.filter.RowFilter;
+import org.apache.hadoop.hbase.util.Bytes;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -130,7 +134,7 @@ public class HbaseBigTable implements IBigTable {
 
         // 一个PUT代表一行数据，再NEW一个PUT表示第二行数据,每行一个唯一的ROWKEY，此处rowkey为put构造方法中传入的值
         Put indexPut = new Put(secondIndexRowKey.getBytes());
-        indexPut.addColumn(HBaseUtil.valueOf(COLUMN_FAMILY_NAME), HBaseUtil.valueOf(COLUMN_NAME_DATA), HBaseUtil.valueOf(rowKey));
+        indexPut.addColumn(Bytes.toBytes(COLUMN_FAMILY_NAME), Bytes.toBytes(COLUMN_NAME_DATA), Bytes.toBytes(rowKey));
         indexTable.put(indexPut);
 
         /* 保存DataPack数据 */
@@ -139,7 +143,7 @@ public class HbaseBigTable implements IBigTable {
 
         // 一个PUT代表一行数据，再NEW一个PUT表示第二行数据,每行一个唯一的ROWKEY，此处rowkey为put构造方法中传入的值
         Put dataPut = new Put(rowKey.getBytes());
-        dataPut.addColumn(HBaseUtil.valueOf(COLUMN_FAMILY_NAME), HBaseUtil.valueOf(COLUMN_NAME_DATA), HBaseUtil.valueOf(DataPackObjectUtils.toJson(data)));
+        dataPut.addColumn(Bytes.toBytes(COLUMN_FAMILY_NAME), Bytes.toBytes(COLUMN_NAME_DATA), Bytes.toBytes(DataPackObjectUtils.toJson(data)));
         dataTable.put(dataPut);
 
         // TODO recieveTime 接收时间
@@ -153,7 +157,7 @@ public class HbaseBigTable implements IBigTable {
 
         // 一个PUT代表一行数据，再NEW一个PUT表示第二行数据，每行一个唯一的ROWKEY，此处rowkey为put构造方法中传入的值
         Put dataPut = new Put(vin.getBytes());
-        dataPut.addColumn(HBaseUtil.valueOf(COLUMN_FAMILY_NAME), HBaseUtil.valueOf(COLUMN_NAME_DATA), HBaseUtil.valueOf(vin));
+        dataPut.addColumn(Bytes.toBytes(COLUMN_FAMILY_NAME), Bytes.toBytes(COLUMN_NAME_DATA), Bytes.toBytes(vin));
         dataTable.put(dataPut);
 
         logger.debug("Save vin({}) success.", vin);
@@ -161,7 +165,20 @@ public class HbaseBigTable implements IBigTable {
 
     @Override
     public String queryData(String startTimeRowKey, IDataReadable dataReadable) {
-        // TODO 查询数据
+        try {
+            // 根据开始row key和回调函数处理一批数据
+            Table table = connection.getTable(TableName.valueOf(TABLE_NAME_SECOND_INDEX));
+
+            // 构建查询条件
+            Scan scan = new Scan();
+            scan.setStartRow(Bytes.toBytes(""));
+            scan.setStartRow(Bytes.toBytes(""));
+
+
+            ResultScanner resultScanner = table.getScanner(scan);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
         return null;
     }
 

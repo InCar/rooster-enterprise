@@ -54,9 +54,14 @@ public class HbaseBigTableTest {
     }
 
     @Test
-    @Ignore
     public void testQueryData() throws Exception {
-        // TODO queryData
+        bigTable.queryData("", new IBigTable.IDataReadable() {
+
+            @Override
+            public void onRead(Object object) {
+                System.out.println(object);
+            }
+        });
     }
 
     @Test

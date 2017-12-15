@@ -1,8 +1,7 @@
 package com.incarcloud.rooster.util;
 
-import org.apache.commons.lang.StringUtils;
-
-import java.io.UnsupportedEncodingException;
+import org.apache.hadoop.hbase.filter.BinaryComparator;
+import org.apache.hadoop.hbase.util.Bytes;
 
 /**
  * HBase工具类
@@ -13,21 +12,12 @@ import java.io.UnsupportedEncodingException;
 public final class HBaseUtil {
 
     /**
-     * 默认字符串UTF-8
-     */
-    public static final String DEFAULT_CHARSET_UTF8 = "UTF-8";
-
-    /**
-     * 获得字符串的字节数组
+     * String转BinaryComparator对象
      *
      * @param string 字符串
      * @return
-     * @throws UnsupportedEncodingException
      */
-    public static byte[] valueOf(String string) throws UnsupportedEncodingException {
-        if (StringUtils.isBlank(string)) {
-            throw new IllegalArgumentException("string is blank.");
-        }
-        return string.getBytes(DEFAULT_CHARSET_UTF8);
+    public static BinaryComparator toBinaryComparator(String string) {
+        return new BinaryComparator(Bytes.toBytes(string));
     }
 }
