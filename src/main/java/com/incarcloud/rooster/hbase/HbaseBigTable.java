@@ -5,21 +5,20 @@ package com.incarcloud.rooster.hbase;/**
 import com.incarcloud.rooster.bigtable.IBigTable;
 import com.incarcloud.rooster.datapack.DataPackObject;
 import com.incarcloud.rooster.util.DataPackObjectUtils;
-import com.incarcloud.rooster.util.HBaseUtil;
 import com.incarcloud.rooster.util.RowKeyUtil;
+import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.HColumnDescriptor;
 import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.*;
+import org.apache.hadoop.hbase.util.Bytes;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.util.Date;
-import java.util.List;
-import java.util.Properties;
+import java.util.*;
 
 /**
  * @author Fan Beibei
@@ -42,6 +41,11 @@ public class HbaseBigTable implements IBigTable {
      * 二级索引表
      */
     private static final String TABLE_NAME_SECOND_INDEX = "second_index";
+
+    /**
+     * 数据表
+     */
+    private static final String TABLE_NAME_TELEMETRY = DataPackObjectUtils.getTableName("default");
 
     /**
      * 列族
@@ -93,7 +97,7 @@ public class HbaseBigTable implements IBigTable {
         }
 
         // create telemetry
-        tableName = TableName.valueOf(DataPackObjectUtils.getTableName("default"));
+        tableName = TableName.valueOf(TABLE_NAME_TELEMETRY);
         if (!admin.tableExists(tableName)) {
             desc = new HTableDescriptor(tableName);
             admin.createTable(desc.addFamily(new HColumnDescriptor(COLUMN_FAMILY_NAME)));
@@ -130,16 +134,16 @@ public class HbaseBigTable implements IBigTable {
 
         // 一个PUT代表一行数据，再NEW一个PUT表示第二行数据,每行一个唯一的ROWKEY，此处rowkey为put构造方法中传入的值
         Put indexPut = new Put(secondIndexRowKey.getBytes());
-        indexPut.addColumn(HBaseUtil.valueOf(COLUMN_FAMILY_NAME), HBaseUtil.valueOf(COLUMN_NAME_DATA), HBaseUtil.valueOf(rowKey));
+        indexPut.addColumn(Bytes.toBytes(COLUMN_FAMILY_NAME), Bytes.toBytes(COLUMN_NAME_DATA), Bytes.toBytes(rowKey));
         indexTable.put(indexPut);
 
         /* 保存DataPack数据 */
         // Table对象线程不安全
-        Table dataTable = connection.getTable(TableName.valueOf(DataPackObjectUtils.getTableName("default")));
+        Table dataTable = connection.getTable(TableName.valueOf(TABLE_NAME_TELEMETRY));
 
         // 一个PUT代表一行数据，再NEW一个PUT表示第二行数据,每行一个唯一的ROWKEY，此处rowkey为put构造方法中传入的值
         Put dataPut = new Put(rowKey.getBytes());
-        dataPut.addColumn(HBaseUtil.valueOf(COLUMN_FAMILY_NAME), HBaseUtil.valueOf(COLUMN_NAME_DATA), HBaseUtil.valueOf(DataPackObjectUtils.toJson(data)));
+        dataPut.addColumn(Bytes.toBytes(COLUMN_FAMILY_NAME), Bytes.toBytes(COLUMN_NAME_DATA), Bytes.toBytes(DataPackObjectUtils.toJson(data)));
         dataTable.put(dataPut);
 
         // TODO recieveTime 接收时间
@@ -153,7 +157,7 @@ public class HbaseBigTable implements IBigTable {
 
         // 一个PUT代表一行数据，再NEW一个PUT表示第二行数据，每行一个唯一的ROWKEY，此处rowkey为put构造方法中传入的值
         Put dataPut = new Put(vin.getBytes());
-        dataPut.addColumn(HBaseUtil.valueOf(COLUMN_FAMILY_NAME), HBaseUtil.valueOf(COLUMN_NAME_DATA), HBaseUtil.valueOf(vin));
+        dataPut.addColumn(Bytes.toBytes(COLUMN_FAMILY_NAME), Bytes.toBytes(COLUMN_NAME_DATA), Bytes.toBytes(vin));
         dataTable.put(dataPut);
 
         logger.debug("Save vin({}) success.", vin);
@@ -161,13 +165,102 @@ public class HbaseBigTable implements IBigTable {
 
     @Override
     public String queryData(String startTimeRowKey, IDataReadable dataReadable) {
-        // TODO 查询数据
-        return null;
+        String nextRowKey = startTimeRowKey;
+        try {
+            // 根据开始row key和回调函数处理一批数据
+            Table indexTable = connection.getTable(TableName.valueOf(TABLE_NAME_SECOND_INDEX));
+            Table dataTable = connection.getTable(TableName.valueOf(TABLE_NAME_TELEMETRY));
+
+            // 构建查询条件
+            Scan scan = new Scan();
+            scan.setStartRow(Bytes.toBytes(startTimeRowKey));
+            String stopTimeRowKey = RowKeyUtil.makeMaxDetectionTimeIndexRowKey(DataPackObjectUtils.convertDetectionDateToString(Calendar.getInstance().getTime()));
+            scan.setStopRow(Bytes.toBytes(stopTimeRowKey));
+
+            // 遍历查询结果集
+            ResultScanner indexResultScanner = indexTable.getScanner(scan);
+            String dataRowKey;
+            Get dataGet;
+            Result dataResult;
+            String jsonString;
+            String objectTypeString;
+            for (Result indexResult : indexResultScanner) {
+                // 记录最后一次查询的RowKey
+                nextRowKey = Bytes.toString(indexResult.getRow());
+                // 查询数据表RowKey
+                dataRowKey = Bytes.toString(indexResult.getValue(Bytes.toBytes(COLUMN_FAMILY_NAME), Bytes.toBytes(COLUMN_NAME_DATA)));
+                if (StringUtils.isNotBlank(dataRowKey)) {
+                    // 根据数据表RowKey查询数据表json数据
+                    dataGet = new Get(Bytes.toBytes(dataRowKey));
+                    dataResult = dataTable.get(dataGet);
+                    jsonString = Bytes.toString(dataResult.getValue(Bytes.toBytes(COLUMN_FAMILY_NAME), Bytes.toBytes(COLUMN_NAME_DATA)));
+                    // 处理数据
+                    if (StringUtils.isNotBlank(jsonString)) {
+                        try {
+                            // 转换json字符串为DataPack对象
+                            objectTypeString = RowKeyUtil.getDataTypeFromRowKey(dataRowKey);
+                            // 传递读取对象数据
+                            dataReadable.onRead(DataPackObjectUtils.fromJson(jsonString, DataPackObjectUtils.getDataPackObjectClass(objectTypeString)));
+                        } catch (Exception e) {
+                            logger.error("queryData: json转object异常, ", e);
+                        }
+                    }
+                }
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return nextRowKey;
     }
 
     @Override
     public <T extends DataPackObject> List<T> queryData(String vinOrCode, Class<T> clazz, Date startTime, Date endTime) {
-        // TODO 根据开始和结束时间查询数据
+        // 验证参数信息
+        if (null == vinOrCode || null == startTime || null == endTime) {
+            throw new IllegalArgumentException("the params can't be null");
+        }
+        // 查询开始时间必须小于结束时间
+        if (startTime.getTime() > endTime.getTime()) {
+            throw new IllegalArgumentException("the end time must be bigger than the start time");
+        }
+
+        // 读取数据
+        try {
+            // 根据开始和结束时间查询数据
+            Table dataTable = connection.getTable(TableName.valueOf(TABLE_NAME_TELEMETRY));
+
+            // 构建查询条件
+            Scan scan = new Scan();
+            // 计算查询区间
+            String startTimeRowKey = RowKeyUtil.makeMinRowKey(vinOrCode, DataPackObjectUtils.getDataType(clazz), DataPackObjectUtils.convertDetectionDateToString(startTime));
+            String stopTimeRowKey = RowKeyUtil.makeMinRowKey(vinOrCode, DataPackObjectUtils.getDataType(clazz), DataPackObjectUtils.convertDetectionDateToString(endTime));
+            // 设置查询数据范围
+            scan.setStartRow(Bytes.toBytes(startTimeRowKey));
+            scan.setStopRow(Bytes.toBytes(stopTimeRowKey));
+
+            // 遍历查询结果集
+            String jsonString;
+            List<T> dataList = new ArrayList<>();
+            ResultScanner dataResultScanner = dataTable.getScanner(scan);
+            for (Result dataResult : dataResultScanner) {
+                //System.out.println(Bytes.toString(dataResult.getRow()));
+                // 获得json字符串
+                jsonString = Bytes.toString(dataResult.getValue(Bytes.toBytes(COLUMN_FAMILY_NAME), Bytes.toBytes(COLUMN_NAME_DATA)));
+                if (StringUtils.isNotBlank(jsonString)) {
+                    try {
+                        // 添加对象数据
+                        dataList.add(DataPackObjectUtils.fromJson(jsonString, clazz));
+                    } catch (Exception e) {
+                        logger.error("queryData: json转object异常, ", e);
+                    }
+                }
+            }
+            // 返回数据集
+            return dataList;
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
         return null;
     }
 
