@@ -1,6 +1,7 @@
 package com.incarcloud.rooster.hbase;
 
 import com.incarcloud.rooster.bigtable.IBigTable;
+import com.incarcloud.rooster.util.RowKeyUtil;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.HColumnDescriptor;
@@ -55,13 +56,18 @@ public class HbaseBigTableTest {
 
     @Test
     public void testQueryData() throws Exception {
-        bigTable.queryData("", new IBigTable.IDataReadable() {
+        String startRowKey = RowKeyUtil.makeMinDetectionTimeIndexRowKey("20171215114547");
+        String stopRowKey = RowKeyUtil.makeMaxDetectionTimeIndexRowKey("20171215181147");
+        System.err.println(startRowKey);
+        System.err.println(stopRowKey);
+        String nextRowKey = bigTable.queryData(startRowKey, new IBigTable.IDataReadable() {
 
             @Override
             public void onRead(Object object) {
                 System.out.println(object);
             }
         });
+        System.err.println(nextRowKey);
     }
 
     @Test
