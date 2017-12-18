@@ -18,10 +18,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.util.Calendar;
-import java.util.Date;
-import java.util.List;
-import java.util.Properties;
+import java.util.*;
 
 /**
  * @author Fan Beibei
@@ -182,21 +179,26 @@ public class HbaseBigTable implements IBigTable {
 
             // 遍历查询结果集
             ResultScanner indexResultScanner = indexTable.getScanner(scan);
+            String dataRowKey;
+            Get dataGet;
+            Result dataResult;
+            String jsonString;
+            String objectTypeString;
             for (Result indexResult : indexResultScanner) {
                 // 记录最后一次查询的RowKey
                 nextRowKey = Bytes.toString(indexResult.getRow());
                 // 查询数据表RowKey
-                String dataRowKey = Bytes.toString(indexResult.getValue(Bytes.toBytes(COLUMN_FAMILY_NAME), Bytes.toBytes(COLUMN_NAME_DATA)));
+                dataRowKey = Bytes.toString(indexResult.getValue(Bytes.toBytes(COLUMN_FAMILY_NAME), Bytes.toBytes(COLUMN_NAME_DATA)));
                 if (StringUtils.isNotBlank(dataRowKey)) {
                     // 根据数据表RowKey查询数据表json数据
-                    Get dataGet = new Get(Bytes.toBytes(dataRowKey));
-                    Result dataResult = dataTable.get(dataGet);
-                    String jsonString = Bytes.toString(dataResult.getValue(Bytes.toBytes(COLUMN_FAMILY_NAME), Bytes.toBytes(COLUMN_NAME_DATA)));
+                    dataGet = new Get(Bytes.toBytes(dataRowKey));
+                    dataResult = dataTable.get(dataGet);
+                    jsonString = Bytes.toString(dataResult.getValue(Bytes.toBytes(COLUMN_FAMILY_NAME), Bytes.toBytes(COLUMN_NAME_DATA)));
                     // 处理数据
                     if (StringUtils.isNotBlank(jsonString)) {
                         try {
                             // 转换json字符串为DataPack对象
-                            String objectTypeString = RowKeyUtil.getDataTypeFromRowKey(dataRowKey);
+                            objectTypeString = RowKeyUtil.getDataTypeFromRowKey(dataRowKey);
                             // 传递读取对象数据
                             dataReadable.onRead(DataPackObjectUtils.fromJson(jsonString, DataPackObjectUtils.getDataPackObjectClass(objectTypeString)));
                         } catch (Exception e) {
@@ -213,7 +215,52 @@ public class HbaseBigTable implements IBigTable {
 
     @Override
     public <T extends DataPackObject> List<T> queryData(String vinOrCode, Class<T> clazz, Date startTime, Date endTime) {
-        // TODO 根据开始和结束时间查询数据
+        // 验证参数信息
+        if (null == vinOrCode || null == startTime || null == endTime) {
+            throw new IllegalArgumentException("the params can't be null");
+        }
+        // 查询开始时间必须小于结束时间
+        if (startTime.getTime() > endTime.getTime()) {
+            throw new IllegalArgumentException("the end time must be bigger than the start time");
+        }
+
+        // 读取数据
+        try {
+            // 根据开始和结束时间查询数据
+            Table dataTable = connection.getTable(TableName.valueOf(TABLE_NAME_TELEMETRY));
+
+            // 构建查询条件
+            Scan scan = new Scan();
+            // 计算查询区间
+            String startTimeRowKey = RowKeyUtil.makeMinRowKey(vinOrCode, DataPackObjectUtils.getDataType(clazz), DataPackObjectUtils.convertDetectionDateToString(startTime));
+            String stopTimeRowKey = RowKeyUtil.makeMinRowKey(vinOrCode, DataPackObjectUtils.getDataType(clazz), DataPackObjectUtils.convertDetectionDateToString(endTime));
+            // 设置查询数据范围
+            scan.setStartRow(Bytes.toBytes(startTimeRowKey));
+            scan.setStopRow(Bytes.toBytes(stopTimeRowKey));
+
+            // 遍历查询结果集
+            String jsonString;
+            List<T> dataList = new ArrayList<>();
+            ResultScanner dataResultScanner = dataTable.getScanner(scan);
+            for (Result dataResult : dataResultScanner) {
+                //System.out.println(Bytes.toString(dataResult.getRow()));
+                // 获得json字符串
+                jsonString = Bytes.toString(dataResult.getValue(Bytes.toBytes(COLUMN_FAMILY_NAME), Bytes.toBytes(COLUMN_NAME_DATA)));
+                if (StringUtils.isNotBlank(jsonString)) {
+                    try {
+                        // 添加对象数据
+                        dataList.add(DataPackObjectUtils.fromJson(jsonString, clazz));
+                    } catch (Exception e) {
+                        logger.error("queryData: json转object异常, ", e);
+                    }
+                }
+            }
+            // 返回数据集
+            return dataList;
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
         return null;
     }
 

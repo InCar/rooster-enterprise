@@ -1,6 +1,7 @@
 package com.incarcloud.rooster.hbase;
 
 import com.incarcloud.rooster.bigtable.IBigTable;
+import com.incarcloud.rooster.datapack.DataPackTrip;
 import com.incarcloud.rooster.util.RowKeyUtil;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseConfiguration;
@@ -16,6 +17,10 @@ import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.List;
 import java.util.Properties;
 
 /**
@@ -55,6 +60,7 @@ public class HbaseBigTableTest {
     }
 
     @Test
+    @Ignore
     public void testQueryData() throws Exception {
         String startRowKey = RowKeyUtil.makeMinDetectionTimeIndexRowKey("20171215114547");
         String stopRowKey = RowKeyUtil.makeMaxDetectionTimeIndexRowKey("20171215181147");
@@ -73,7 +79,13 @@ public class HbaseBigTableTest {
     @Test
     @Ignore
     public void testQueryDataList() throws Exception {
-        // TODO queryDataList
+        DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        Date startTime = dateFormat.parse("2017-12-15 11:46:45");
+        Date endTime = dateFormat.parse("2017-12-15 11:47:05");
+        List<DataPackTrip> dataList = bigTable.queryData("LB370X1Z0GJ051724", DataPackTrip.class, startTime, endTime);
+        if (null != dataList && 0 < dataList.size()) {
+            dataList.forEach(object -> System.out.println(object));
+        }
     }
 
     @Test
