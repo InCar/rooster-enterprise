@@ -31,7 +31,7 @@ dependencies {
 
     compile("org.slf4j:slf4j-api:1.7.+")
     compile("org.apache.kafka:kafka-clients:0.11.0.0")
-    compile("org.apache.hbase:hbase-client:1.2.5+")
+    compile("org.apache.hbase:hbase-client:1.2.+")
 
     compile("com.101tec:zkclient:0.10")
 
