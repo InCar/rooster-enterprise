@@ -13,7 +13,7 @@ import java.util.concurrent.ConcurrentMap;
 /**
  * Created by Kong on 2018/1/11.
  */
-public class KafkaMQ implements IBigSuperMQ {
+public class KafkaMQ implements IBigMQ {
 
     private static Logger s_logger = LoggerFactory.getLogger(KafkaMQ.class);
 
