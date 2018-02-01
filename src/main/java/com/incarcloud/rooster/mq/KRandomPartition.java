@@ -1,4 +1,4 @@
-package com.incarcloud.rooster.kafka;/**
+package com.incarcloud.rooster.mq;/**
  * Created by fanbeibei on 2017/6/28.
  */
 
@@ -14,14 +14,11 @@ import java.util.Map;
  * @Description: 使生产者随机提交到不同的分区
  * @date 2017/6/28 11:14
  */
-public class RandomPartition implements Partitioner {
+public class KRandomPartition implements Partitioner {
+
     @Override
     public void configure(Map<String, ?> configs) {
 
-    }
-
-    @Override
-    public void close() {
     }
 
     @Override
@@ -35,7 +32,12 @@ public class RandomPartition implements Partitioner {
         } catch (Exception e) {
             partitionNum = key.hashCode();
         }
-//        System.out.println("kafkaMessage topic:"+ topic+" |key:"+ key+" |value:"+value);
+
+        //System.out.println("kafkaMessage topic:"+ topic+" |key:"+ key+" |value:"+value);
         return Math.abs(partitionNum % numPartitions);
+    }
+
+    @Override
+    public void close() {
     }
 }

@@ -19,6 +19,10 @@ import java.util.*;
  * @date 2017/7/10 11:11
  */
 public class KConsumer {
+
+    /**
+     * 日志
+     */
     private static Logger s_logger = LoggerFactory.getLogger(KConsumer.class);
 
     private KafkaConsumer<String, byte[]> consumer;
@@ -28,15 +32,14 @@ public class KConsumer {
      */
     private List<String> topicList;
 
-
     /**
-     * @param topic  订阅主题
+     * @param topic 订阅主题
      * @param props 消费者配置
      */
-    public KConsumer(String topic,Properties props) {
+    public KConsumer(String topic, Properties props) {
 
 
-        if(StringUtil.isBlank(topic)){
+        if (StringUtil.isBlank(topic)) {
             throw new IllegalArgumentException();
         }
 
@@ -46,7 +49,6 @@ public class KConsumer {
         if (!validConf(props)) {
             throw new IllegalArgumentException();
         }
-
 
 //        props.put("bootstrap.servers", "localhost:9092");// 该地址是集群的子集，用来探测集群。
 //        props.put("group.id", "test");// cousumer的分组id
@@ -67,6 +69,7 @@ public class KConsumer {
 
     /**
      * 验证参数
+     *
      * @param props
      * @return
      */
@@ -74,7 +77,6 @@ public class KConsumer {
         if (null == props) {
             return false;
         }
-
 
         if (null == props.get("bootstrap.servers")) {
             s_logger.error("bootstrap.servers is null !!");
@@ -90,7 +92,7 @@ public class KConsumer {
     }
 
     /**
-     * @param size      批次大小
+     * @param size 批次大小
      * @return
      */
     public List<byte[]> batchReceive(int size) {
@@ -98,7 +100,7 @@ public class KConsumer {
 
         try {
             ConsumerRecords<String, byte[]> records = consumer.poll(500);
-            if (null == records){
+            if (null == records) {
                 return null;
             }
 

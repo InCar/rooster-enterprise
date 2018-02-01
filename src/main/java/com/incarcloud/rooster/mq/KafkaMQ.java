@@ -11,16 +11,26 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 /**
+ * MQ Kafka实现
+ *
  * Created by Kong on 2018/1/11.
  */
 public class KafkaMQ implements IBigMQ {
 
+    /**
+     * 日志
+     */
     private static Logger s_logger = LoggerFactory.getLogger(KafkaMQ.class);
 
-    ConcurrentMap<String,KProducer> producerConcurrentMap = new ConcurrentHashMap<>() ;
+    /**
+     * 缓存生产者
+     */
+    ConcurrentMap<String, KProducer> producerConcurrentMap = new ConcurrentHashMap<>();
 
-    ConcurrentMap<String,KConsumer> consumerConcurrentMap = new ConcurrentHashMap<>() ;
-
+    /**
+     * 缓存消费者
+     */
+    ConcurrentMap<String, KConsumer> consumerConcurrentMap = new ConcurrentHashMap<>();
 
     /**
      * 只发送消息可用这个构造方法
@@ -28,39 +38,39 @@ public class KafkaMQ implements IBigMQ {
      * @param topic    主题
      * @param producer 生产者
      */
-    public KafkaMQ setProducer(String topic,KProducer producer){
+    public KafkaMQ setProducer(String topic, KProducer producer) {
         if (StringUtil.isBlank(topic) || null == producer) {
             throw new IllegalArgumentException();
         }
-        producerConcurrentMap.put(topic,producer) ;
-        return this ;
+        producerConcurrentMap.put(topic, producer);
+        return this;
     }
 
     /**
      * 只消费消息可用这个构造方法
      *
-     * @param topic      主题
-     * @param props  消费者
+     * @param topic 主题
+     * @param props 消费者
      */
-    public KafkaMQ setConsumer(String topic,Properties props){
+    public KafkaMQ setConsumer(String topic, Properties props) {
         if (StringUtil.isBlank(topic) || null == props) {
             throw new IllegalArgumentException();
         }
-        KConsumer consumer = new KConsumer(topic,props) ;
-        consumerConcurrentMap.put(topic,consumer) ;
-        return this ;
+        KConsumer consumer = new KConsumer(topic, props);
+        consumerConcurrentMap.put(topic, consumer);
+        return this;
     }
 
     @Override
-    public MqSendResult post(String topic,byte[] data) {
+    public MqSendResult post(String topic, byte[] data) {
         if (null == data) {
             throw new IllegalArgumentException();
         }
-        if (StringUtil.isBlank(topic)){
+        if (StringUtil.isBlank(topic)) {
             throw new UnsupportedOperationException(" topic is null");
         }
 
-        KProducer producer = producerConcurrentMap.get(topic) ;
+        KProducer producer = producerConcurrentMap.get(topic);
 
         if (null == producer) {
             throw new UnsupportedOperationException(" producer is null");
@@ -76,12 +86,12 @@ public class KafkaMQ implements IBigMQ {
     }
 
     @Override
-    public List<MqSendResult> post(String topic ,List<byte[]> datas) {
-        if (StringUtil.isBlank(topic)){
+    public List<MqSendResult> post(String topic, List<byte[]> datas) {
+        if (StringUtil.isBlank(topic)) {
             throw new UnsupportedOperationException(" topic is null");
         }
 
-        KProducer producer = producerConcurrentMap.get(topic) ;
+        KProducer producer = producerConcurrentMap.get(topic);
 
         if (null == producer) {
             throw new UnsupportedOperationException(" producer is null");
@@ -116,11 +126,11 @@ public class KafkaMQ implements IBigMQ {
         if (size <= 0) {
             throw new IllegalArgumentException();
         }
-        if (StringUtil.isBlank(topic)){
+        if (StringUtil.isBlank(topic)) {
             throw new UnsupportedOperationException(" topic is null");
         }
 
-        KConsumer kConsumer = consumerConcurrentMap.get(topic) ;
+        KConsumer kConsumer = consumerConcurrentMap.get(topic);
 
         if (null == kConsumer) {
             throw new UnsupportedOperationException(" consumer config  is null");
@@ -133,9 +143,9 @@ public class KafkaMQ implements IBigMQ {
 
     @Override
     public void releaseCurrentConn(String topic) {
-        KConsumer consumer = consumerConcurrentMap.get(topic) ;
+        KConsumer consumer = consumerConcurrentMap.get(topic);
         //producer是单例的线程安全模型不需要释放
-        if(null != consumer) {
+        if (null != consumer) {
             //释放当前线程的消费者
             releaseCurrentConsumer(topic);
         }
@@ -143,8 +153,8 @@ public class KafkaMQ implements IBigMQ {
 
     @Override
     public void close() {
-        producerConcurrentMap.forEach((key,value)->{
-            if(null != value){
+        producerConcurrentMap.forEach((key, value) -> {
+            if (null != value) {
                 value.close();
             }
         });
@@ -160,7 +170,7 @@ public class KafkaMQ implements IBigMQ {
         if (null != consumer) {
             return consumer;
         }
-        consumer = consumerConcurrentMap.get(topic) ;
+        consumer = consumerConcurrentMap.get(topic);
 
         if (null == consumer) {
             throw new UnsupportedOperationException(" consumer config  is null");

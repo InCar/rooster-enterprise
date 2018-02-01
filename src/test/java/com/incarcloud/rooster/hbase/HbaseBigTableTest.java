@@ -37,9 +37,9 @@ public class HbaseBigTableTest {
     private static final String COLUMN_FAMILY_NAME = "base";
     private static final String COLUMN_NAME_DATA = "data";
 
-    public static final String HBASE_ZK_QUORUM = "10.0.11.30,10.0.11.31,10.0.11.32";
+    public static final String HBASE_ZK_QUORUM = "10.0.11.34,10.0.11.35,10.0.11.39";
     public static final String HBASE_Zk_PORT = "2181";
-    public static final String HBASE_MASTER = "10.0.11.30:60000";
+    public static final String HBASE_MASTER = "10.0.11.35:60000";
 
     private IBigTable bigTable;
 
