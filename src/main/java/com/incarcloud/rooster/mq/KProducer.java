@@ -21,10 +21,13 @@ import java.util.concurrent.Future;
  * @date 2017/6/28 14:12
  */
 public class KProducer {
+
+    /**
+     * 日志
+     */
     private static Logger s_logger = LoggerFactory.getLogger(KProducer.class);
 
     private KafkaProducer<String, byte[]> producer;
-
 
     public KProducer(Properties props) {
         if (!validConf(props)) {
@@ -44,12 +47,14 @@ public class KProducer {
 
         props.put("key.serializer", "org.apache.kafka.common.serialization.StringSerializer");
         props.put("value.serializer", "org.apache.kafka.common.serialization.ByteArraySerializer");
-        props.put("partitioner.class", "com.incarcloud.rooster.kafka.RandomPartition");
+        //props.put("partitioner.class", "com.incarcloud.rooster.kafka.RandomPartition");
+        props.put("partitioner.class", "com.incarcloud.rooster.mq.KRandomPartition");
         producer = new KafkaProducer<>(props);
     }
 
     /**
      * 验证参数
+     *
      * @param props
      * @return
      */
@@ -58,7 +63,6 @@ public class KProducer {
             return false;
         }
 
-
         if (null == props.get("bootstrap.servers")) {
             s_logger.error("bootstrap.servers is null !!");
             return false;
@@ -66,7 +70,6 @@ public class KProducer {
 
         return true;
     }
-
 
     /**
      * 发送消息
@@ -89,7 +92,6 @@ public class KProducer {
                                     s_logger.debug("callback  " + metadata);
                                 }
                             });
-
 
 //        future.get();
             long offset = future.get().offset();
@@ -130,7 +132,6 @@ public class KProducer {
                                     }
                                 });
 
-
 //        future.get();
                 long offset = future.get().offset();
                 s_logger.debug("success send ,offset " + offset);
@@ -145,7 +146,6 @@ public class KProducer {
 
             s_logger.error(e.getMessage());
         }
-
 
         return offsetList;
     }
