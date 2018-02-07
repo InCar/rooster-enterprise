@@ -1,5 +1,6 @@
 package com.incarcloud.rooster.util;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpHost;
 import org.apache.http.HttpResponse;
@@ -224,7 +225,7 @@ public class HttpClientUtil {
 
 
             // 创建参数队列
-            if (!StringUtil.isBlank(json)) {
+            if (!StringUtils.isBlank(json)) {
                 StringEntity stringEntity = new StringEntity(json,charset);
                 httpPost.setEntity(stringEntity);
             }
@@ -293,7 +294,7 @@ public class HttpClientUtil {
      * @return
      */
     public static String getForStr(String url, Map<String, String> param, String charset, int timeout, HttpHost proxy) {
-        if (StringUtil.isBlank(url) || null == param) {
+        if (StringUtils.isBlank(url) || null == param) {
             throw new IllegalArgumentException("url or param can not be null !!!");
         }
 
@@ -388,7 +389,7 @@ public class HttpClientUtil {
     public static String uploadFile(String url, Map<String, String> param, Map<String, File> files, String charset,
                                     int timeout, HttpHost proxy) {
 
-        if (StringUtil.isBlank(url) || null == files) {
+        if (StringUtils.isBlank(url) || null == files) {
             throw new IllegalArgumentException("url or files can not be null !!!");
         }
 
@@ -482,7 +483,7 @@ public class HttpClientUtil {
     public static void downloadFile(String url, Map<String, String> param, String destFileName, String charset,
                                     int timeout, HttpHost proxy) {
 
-        if (StringUtil.isBlank(url) || null == param) {
+        if (StringUtils.isBlank(url) || null == param) {
             throw new IllegalArgumentException("url or param can not be null !!!");
         }
 

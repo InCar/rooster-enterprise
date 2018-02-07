@@ -1,6 +1,6 @@
 package com.incarcloud.rooster.mq;
 
-import com.incarcloud.rooster.util.StringUtil;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -39,7 +39,7 @@ public class KafkaMQ implements IBigMQ {
      * @param producer 生产者
      */
     public KafkaMQ setProducer(String topic, KProducer producer) {
-        if (StringUtil.isBlank(topic) || null == producer) {
+        if (StringUtils.isBlank(topic) || null == producer) {
             throw new IllegalArgumentException();
         }
         producerConcurrentMap.put(topic, producer);
@@ -53,7 +53,7 @@ public class KafkaMQ implements IBigMQ {
      * @param props 消费者
      */
     public KafkaMQ setConsumer(String topic, Properties props) {
-        if (StringUtil.isBlank(topic) || null == props) {
+        if (StringUtils.isBlank(topic) || null == props) {
             throw new IllegalArgumentException();
         }
         KConsumer consumer = new KConsumer(topic, props);
@@ -66,7 +66,7 @@ public class KafkaMQ implements IBigMQ {
         if (null == data) {
             throw new IllegalArgumentException();
         }
-        if (StringUtil.isBlank(topic)) {
+        if (StringUtils.isBlank(topic)) {
             throw new UnsupportedOperationException(" topic is null");
         }
 
@@ -87,7 +87,7 @@ public class KafkaMQ implements IBigMQ {
 
     @Override
     public List<MqSendResult> post(String topic, List<byte[]> datas) {
-        if (StringUtil.isBlank(topic)) {
+        if (StringUtils.isBlank(topic)) {
             throw new UnsupportedOperationException(" topic is null");
         }
 
@@ -126,7 +126,7 @@ public class KafkaMQ implements IBigMQ {
         if (size <= 0) {
             throw new IllegalArgumentException();
         }
-        if (StringUtil.isBlank(topic)) {
+        if (StringUtils.isBlank(topic)) {
             throw new UnsupportedOperationException(" topic is null");
         }
 

@@ -214,6 +214,18 @@ public class HbaseBigTable implements IBigTable {
     }
 
     @Override
+    public int queryData(Date queryTime) {
+        // TODO 待实现
+        return 0;
+    }
+
+    @Override
+    public boolean queryData(Date queryTime, IDataReadable dataReadable) {
+        // TODO 待实现
+        return false;
+    }
+
+    @Override
     public <T extends DataPackObject> List<T> queryData(String vinOrCode, Class<T> clazz, Date startTime, Date endTime) {
         // 验证参数信息
         if (null == vinOrCode || null == startTime || null == endTime) {
