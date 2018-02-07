@@ -1,5 +1,5 @@
 group 'com.incarcloud'
-version '2.1.18-SNAPSHOT'
+version '2.1.20-SNAPSHOT'
 
 allprojects {
     apply plugin: 'java'
@@ -51,15 +51,16 @@ allprojects {
 }
 
 dependencies {
-    compile("com.incarcloud:rooster-shared:2.1.18-SNAPSHOT")
+    compile("com.incarcloud:rooster-shared:2.1.20-SNAPSHOT")
 
     compile("org.slf4j:slf4j-api:1.7.+")
 
-    compile("com.101tec:zkclient:0.10")
     compile("org.apache.hbase:hbase-client:1.2.+")
     compile("org.apache.kafka:kafka-clients:0.11.0.+")
 
     compile("org.apache.httpcomponents:httpmime:4.5.+")
+
+    compile("org.springframework.data:spring-data-redis:1.8.+")
 
     testCompile("junit:junit:4.+")
 }
@@ -78,6 +79,16 @@ uploadArchives {
             }
         }
     }
+}
+
+task sourcesJar(type: Jar) {
+    classifier = 'sources'
+    from sourceSets.main.allSource
+}
+
+artifacts {
+    archives jar
+    archives sourcesJar
 }
 
 defaultTasks "assemble"

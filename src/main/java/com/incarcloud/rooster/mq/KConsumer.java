@@ -2,7 +2,7 @@ package com.incarcloud.rooster.mq;/**
  * Created by fanbeibei on 2017/7/10.
  */
 
-import com.incarcloud.rooster.util.StringUtil;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
@@ -39,7 +39,7 @@ public class KConsumer {
     public KConsumer(String topic, Properties props) {
 
 
-        if (StringUtil.isBlank(topic)) {
+        if (StringUtils.isBlank(topic)) {
             throw new IllegalArgumentException();
         }
 
