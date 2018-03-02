@@ -13,11 +13,17 @@ import org.apache.hadoop.hbase.HColumnDescriptor;
 import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.*;
+import org.apache.hadoop.hbase.filter.*;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.*;
 
 /**
@@ -56,6 +62,12 @@ public class HbaseBigTable implements IBigTable {
      * 数据列
      */
     private static final String COLUMN_NAME_DATA = "data";
+
+    /**
+     * 时间格式化
+     */
+    private static final String DATE_PATTERN = "yyyyMMddHHmmss";
+    private static final DateFormat DATE_FORMAT = new SimpleDateFormat(DATE_PATTERN);
 
     /**
      * HBase连接，重量级且线程安全，建议单例
@@ -215,14 +227,77 @@ public class HbaseBigTable implements IBigTable {
 
     @Override
     public int queryData(Date queryTime) {
-        // TODO 待实现
-        return 0;
+        // 验证参数信息
+        if (null == queryTime) {
+            throw new IllegalArgumentException("the params can't be null");
+        }
+        int count = 0;
+        String queryTimeRowKey = RowKeyUtil.makeMinDetectionTimeIndexRowKey(DATE_FORMAT.format(queryTime));
+        try {
+            Table dataTable = connection.getTable(TableName.valueOf(TABLE_NAME_SECOND_INDEX));
+            // 构建查询条件
+            Scan scan = new Scan();
+            // 设置查询数据范围
+            scan.setStartRow(Bytes.toBytes(queryTimeRowKey));
+            scan.setStopRow(Bytes.toBytes(queryTimeRowKey));
+
+            ResultScanner dataResultScanner = dataTable.getScanner(scan);
+            for (Result dataResult : dataResultScanner) {
+                count++;
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return count;
     }
 
     @Override
     public boolean queryData(Date queryTime, IDataReadable dataReadable) {
-        // TODO 待实现
-        return false;
+        String queryTimeRowKey = RowKeyUtil.makeMinDetectionTimeIndexRowKey(DATE_FORMAT.format(queryTime));
+        // 根据开始row key和回调函数处理一批数据
+        try {
+            Table indexTable = connection.getTable(TableName.valueOf(TABLE_NAME_SECOND_INDEX));
+            Table dataTable = connection.getTable(TableName.valueOf(TABLE_NAME_TELEMETRY));
+
+            // 构建查询条件
+            Scan scan = new Scan();
+            scan.setStartRow(Bytes.toBytes(queryTimeRowKey));
+            scan.setStopRow(Bytes.toBytes(queryTimeRowKey));
+
+            // 遍历查询结果集
+            ResultScanner indexResultScanner = indexTable.getScanner(scan);
+            String dataRowKey;
+            Get dataGet;
+            Result dataResult;
+            String jsonString;
+            String objectTypeString;
+            for (Result indexResult : indexResultScanner) {
+                // 查询数据表RowKey
+                dataRowKey = Bytes.toString(indexResult.getValue(Bytes.toBytes(COLUMN_FAMILY_NAME), Bytes.toBytes(COLUMN_NAME_DATA)));
+                if (StringUtils.isNotBlank(dataRowKey)) {
+                    // 根据数据表RowKey查询数据表json数据
+                    dataGet = new Get(Bytes.toBytes(dataRowKey));
+                    dataResult = dataTable.get(dataGet);
+                    jsonString = Bytes.toString(dataResult.getValue(Bytes.toBytes(COLUMN_FAMILY_NAME), Bytes.toBytes(COLUMN_NAME_DATA)));
+                    // 处理数据
+                    if (StringUtils.isNotBlank(jsonString)) {
+                        try {
+                            // 转换json字符串为DataPack对象
+                            objectTypeString = RowKeyUtil.getDataTypeFromRowKey(dataRowKey);
+                            // 传递读取对象数据
+                            dataReadable.onRead(DataPackObjectUtils.fromJson(jsonString, DataPackObjectUtils.getDataPackObjectClass(objectTypeString)));
+                        } catch (Exception e) {
+                            logger.error("queryData: json转object异常, ", e);
+                        }
+                    }
+                }
+            }
+
+        } catch (IOException e) {
+            e.printStackTrace();
+            return  false;
+        }
+        return true;
     }
 
     @Override
