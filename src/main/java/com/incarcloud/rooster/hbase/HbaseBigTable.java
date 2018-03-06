@@ -233,13 +233,14 @@ public class HbaseBigTable implements IBigTable {
         }
         int count = 0;
         String queryTimeRowKey = RowKeyUtil.makeMinDetectionTimeIndexRowKey(DATE_FORMAT.format(queryTime));
+        String endTimeRowKey = RowKeyUtil.makeMaxDetectionTimeIndexRowKey(DataPackObjectUtils.convertDetectionDateToString(Calendar.getInstance().getTime()));
         try {
             Table dataTable = connection.getTable(TableName.valueOf(TABLE_NAME_SECOND_INDEX));
             // 构建查询条件
             Scan scan = new Scan();
             // 设置查询数据范围
             scan.setStartRow(Bytes.toBytes(queryTimeRowKey));
-            scan.setStopRow(Bytes.toBytes(queryTimeRowKey));
+            scan.setStopRow(Bytes.toBytes(endTimeRowKey));
 
             ResultScanner dataResultScanner = dataTable.getScanner(scan);
             for (Result dataResult : dataResultScanner) {
