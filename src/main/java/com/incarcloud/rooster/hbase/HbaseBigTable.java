@@ -245,6 +245,8 @@ public class HbaseBigTable implements IBigTable {
             ResultScanner dataResultScanner = dataTable.getScanner(scan);
             for (Result dataResult : dataResultScanner) {
                 count++;
+                // 不统计数据，返回标识1
+                break;
             }
         } catch (IOException e) {
             e.printStackTrace();
