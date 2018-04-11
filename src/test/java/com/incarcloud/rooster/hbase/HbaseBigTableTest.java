@@ -3,14 +3,15 @@ package com.incarcloud.rooster.hbase;
 import com.incarcloud.rooster.bigtable.IBigTable;
 import com.incarcloud.rooster.datapack.DataPackTrip;
 import com.incarcloud.rooster.util.RowKeyUtil;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.HColumnDescriptor;
 import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.TableName;
-import org.apache.hadoop.hbase.client.Admin;
-import org.apache.hadoop.hbase.client.Connection;
-import org.apache.hadoop.hbase.client.ConnectionFactory;
+import org.apache.hadoop.hbase.client.*;
+import org.apache.hadoop.hbase.filter.KeyOnlyFilter;
+import org.apache.hadoop.hbase.util.Bytes;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Ignore;
@@ -19,6 +20,7 @@ import org.junit.Test;
 import java.io.IOException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 import java.util.Properties;
@@ -90,6 +92,26 @@ public class HbaseBigTableTest {
 
     @Test
     @Ignore
+    public void testQueryLatestTimeMillis() throws Exception {
+        DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.S");
+        long millis = bigTable.queryLatestTimeMillis();
+        if (0 != millis) {
+            System.out.println(dateFormat.format(new Date(millis)));
+        }
+    }
+
+    @Test
+    @Ignore
+    public void testQueryDataByQueryTime() throws Exception {
+        DateFormat dateFormat = new SimpleDateFormat("yyyyMMddHHmmss");
+        Date queryTime = dateFormat.parse("20180411152256");
+        bigTable.queryData(queryTime, object -> {
+            System.out.println(object);
+        });
+    }
+
+    @Test
+    @Ignore
     public void createTable() throws IOException {
         // Connection
         Configuration configuration = HBaseConfiguration.create();
@@ -130,5 +152,45 @@ public class HbaseBigTableTest {
         }
         desc = new HTableDescriptor(tableName);
         admin.createTable(desc.addFamily(new HColumnDescriptor(COLUMN_FAMILY_NAME)));
+    }
+
+    @Test
+    @Ignore
+    public void testQueryMaxKey() throws Exception {
+        // Connection
+        Configuration configuration = HBaseConfiguration.create();
+        configuration.set("hbase.zookeeper.quorum", HBASE_ZK_QUORUM);
+        configuration.set("hbase.zookeeper.property.clientPort", HBASE_Zk_PORT);
+        configuration.set("hbase.master", HBASE_MASTER);
+        Connection connection = ConnectionFactory.createConnection(configuration);
+
+        // Filter
+        Scan scan = new Scan();
+        scan.setFilter(new KeyOnlyFilter());
+        scan.setReversed(true);
+        scan.setBatch(1);
+        Table table = connection.getTable(TableName.valueOf(TABLE_NAME_SECOND_INDEX));
+
+        // Query
+        String maxRowKey = null;
+        ResultScanner resultScanner = table.getScanner(scan);
+        for (Result result : resultScanner) {
+            maxRowKey = Bytes.toString(result.getRow());
+            break;
+        }
+
+        // for long time
+        if (StringUtils.isNotBlank(maxRowKey)) {
+            String[] splitStrings = maxRowKey.split("_");
+            if (null != splitStrings && 1 < splitStrings.length) {
+                System.out.println(splitStrings[1]);
+                DateFormat dateFormat = new SimpleDateFormat("yyyyMMddHHmmss");
+                Calendar cal = Calendar.getInstance();
+                cal.setTime(dateFormat.parse(splitStrings[1]));
+                cal.set(Calendar.MILLISECOND, 0);
+                System.out.println(cal.getTimeInMillis());
+                System.out.println(dateFormat.format(new Date(cal.getTimeInMillis())));
+            }
+        }
     }
 }

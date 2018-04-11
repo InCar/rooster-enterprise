@@ -6,24 +6,22 @@ import com.incarcloud.rooster.bigtable.IBigTable;
 import com.incarcloud.rooster.datapack.DataPackObject;
 import com.incarcloud.rooster.util.DataPackObjectUtils;
 import com.incarcloud.rooster.util.RowKeyUtil;
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.HColumnDescriptor;
 import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.*;
-import org.apache.hadoop.hbase.filter.*;
+import org.apache.hadoop.hbase.filter.KeyOnlyFilter;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.text.DateFormat;
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
-import java.time.ZonedDateTime;
 import java.util.*;
 
 /**
@@ -214,7 +212,7 @@ public class HbaseBigTable implements IBigTable {
                             // 传递读取对象数据
                             dataReadable.onRead(DataPackObjectUtils.fromJson(jsonString, DataPackObjectUtils.getDataPackObjectClass(objectTypeString)));
                         } catch (Exception e) {
-                            logger.error("queryData: json转object异常, ", e);
+                            logger.error("queryData方法json字符串转object异常, ", e);
                         }
                     }
                 }
@@ -226,46 +224,50 @@ public class HbaseBigTable implements IBigTable {
     }
 
     @Override
-    public int queryData(Date queryTime) {
-        // 验证参数信息
-        if (null == queryTime) {
-            throw new IllegalArgumentException("the params can't be null");
-        }
-        int count = 0;
-        String queryTimeRowKey = RowKeyUtil.makeMinDetectionTimeIndexRowKey(DATE_FORMAT.format(queryTime));
-        String endTimeRowKey = RowKeyUtil.makeMaxDetectionTimeIndexRowKey(DataPackObjectUtils.convertDetectionDateToString(Calendar.getInstance().getTime()));
+    public long queryLatestTimeMillis() {
         try {
-            Table dataTable = connection.getTable(TableName.valueOf(TABLE_NAME_SECOND_INDEX));
             // 构建查询条件
             Scan scan = new Scan();
-            // 设置查询数据范围
-            scan.setStartRow(Bytes.toBytes(queryTimeRowKey));
-            scan.setStopRow(Bytes.toBytes(endTimeRowKey));
+            scan.setFilter(new KeyOnlyFilter());
+            scan.setReversed(true);
+            scan.setBatch(1);
+            Table table = connection.getTable(TableName.valueOf(TABLE_NAME_SECOND_INDEX));
 
-            ResultScanner dataResultScanner = dataTable.getScanner(scan);
-            for (Result dataResult : dataResultScanner) {
-                count++;
-                // 不统计数据，返回标识1
+            // 执行查询
+            String maxRowKey = null;
+            ResultScanner resultScanner = table.getScanner(scan);
+            for (Result result : resultScanner) {
+                maxRowKey = Bytes.toString(result.getRow());
                 break;
             }
-        } catch (IOException e) {
+
+            // 获得时间戳
+            if (StringUtils.isNotBlank(maxRowKey)) {
+                String[] splitStrings = maxRowKey.split("_");
+                if (null != splitStrings && 1 < splitStrings.length) {
+                    Calendar cal = Calendar.getInstance();
+                    cal.setTime(DATE_FORMAT.parse(splitStrings[1]));
+                    cal.set(Calendar.MILLISECOND, 0);
+                    return cal.getTimeInMillis();
+                }
+            }
+        } catch (IOException | ParseException e) {
             e.printStackTrace();
         }
-        return count;
+        return 0;
     }
 
     @Override
     public boolean queryData(Date queryTime, IDataReadable dataReadable) {
-        String queryTimeRowKey = RowKeyUtil.makeMinDetectionTimeIndexRowKey(DATE_FORMAT.format(queryTime));
-        // 根据开始row key和回调函数处理一批数据
         try {
+            // 根据queryTime和回调函数处理一批数据
             Table indexTable = connection.getTable(TableName.valueOf(TABLE_NAME_SECOND_INDEX));
             Table dataTable = connection.getTable(TableName.valueOf(TABLE_NAME_TELEMETRY));
 
             // 构建查询条件
             Scan scan = new Scan();
-            scan.setStartRow(Bytes.toBytes(queryTimeRowKey));
-            scan.setStopRow(Bytes.toBytes(queryTimeRowKey));
+            scan.setStartRow(Bytes.toBytes(RowKeyUtil.makeMinDetectionTimeIndexRowKey(DATE_FORMAT.format(queryTime))));
+            scan.setStopRow(Bytes.toBytes(RowKeyUtil.makeMaxDetectionTimeIndexRowKey(DATE_FORMAT.format(queryTime))));
 
             // 遍历查询结果集
             ResultScanner indexResultScanner = indexTable.getScanner(scan);
@@ -290,7 +292,7 @@ public class HbaseBigTable implements IBigTable {
                             // 传递读取对象数据
                             dataReadable.onRead(DataPackObjectUtils.fromJson(jsonString, DataPackObjectUtils.getDataPackObjectClass(objectTypeString)));
                         } catch (Exception e) {
-                            logger.error("queryData: json转object异常, ", e);
+                            logger.error("queryData方法json字符串转object异常, ", e);
                         }
                     }
                 }
@@ -298,7 +300,7 @@ public class HbaseBigTable implements IBigTable {
 
         } catch (IOException e) {
             e.printStackTrace();
-            return  false;
+            return false;
         }
         return true;
     }
