@@ -102,6 +102,7 @@ public class HbaseBigTableTest {
     }
 
     @Test
+    @Ignore
     public void testQueryDataByQueryTime() throws Exception {
         DateFormat dateFormat = new SimpleDateFormat("yyyyMMddHHmmss");
         Date queryTime = dateFormat.parse("20180411152256");
