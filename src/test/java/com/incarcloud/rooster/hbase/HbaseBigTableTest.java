@@ -157,6 +157,14 @@ public class HbaseBigTableTest {
     }
 
     @Test
+    public void testMillisZero() {
+        Calendar cal = Calendar.getInstance();
+        cal.set(Calendar.MILLISECOND, 0);
+        System.out.println(cal.getTimeInMillis());
+        Assert.assertEquals(0, cal.getTimeInMillis() % 1000);
+    }
+
+    @Test
     @Ignore
     public void testQueryMaxKey() throws Exception {
         // Connection
