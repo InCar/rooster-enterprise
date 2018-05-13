@@ -12,10 +12,7 @@ import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.filter.KeyOnlyFilter;
 import org.apache.hadoop.hbase.util.Bytes;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.*;
 
 import java.io.IOException;
 import java.text.DateFormat;
@@ -76,6 +73,7 @@ public class HbaseBigTableTest {
             }
         });
         System.err.println(nextRowKey);
+        Assert.assertNotNull(nextRowKey);
     }
 
     @Test
@@ -88,6 +86,8 @@ public class HbaseBigTableTest {
         if (null != dataList && 0 < dataList.size()) {
             dataList.forEach(object -> System.out.println(object));
         }
+        System.out.println(dataList);
+        Assert.assertEquals(0, dataList.size());
     }
 
     @Test
@@ -98,6 +98,7 @@ public class HbaseBigTableTest {
         if (0 != millis) {
             System.out.println(dateFormat.format(new Date(millis)));
         }
+        Assert.assertNotEquals(0, millis);
     }
 
     @Test
@@ -105,9 +106,10 @@ public class HbaseBigTableTest {
     public void testQueryDataByQueryTime() throws Exception {
         DateFormat dateFormat = new SimpleDateFormat("yyyyMMddHHmmss");
         Date queryTime = dateFormat.parse("20180411152256");
-        bigTable.queryData(queryTime, object -> {
+        boolean flag = bigTable.queryData(queryTime, object -> {
             System.out.println(object);
         });
+        Assert.assertTrue(flag);
     }
 
     @Test
@@ -176,8 +178,10 @@ public class HbaseBigTableTest {
         ResultScanner resultScanner = table.getScanner(scan);
         for (Result result : resultScanner) {
             maxRowKey = Bytes.toString(result.getRow());
+            System.out.println(maxRowKey);
             break;
         }
+        resultScanner.close();
 
         // for long time
         if (StringUtils.isNotBlank(maxRowKey)) {

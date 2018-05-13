@@ -217,6 +217,9 @@ public class HbaseBigTable implements IBigTable {
                     }
                 }
             }
+
+            // 释放资源
+            indexResultScanner.close();
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -251,6 +254,9 @@ public class HbaseBigTable implements IBigTable {
                     return cal.getTimeInMillis();
                 }
             }
+
+            // 释放资源
+            resultScanner.close();
         } catch (IOException | ParseException e) {
             e.printStackTrace();
         }
@@ -297,6 +303,9 @@ public class HbaseBigTable implements IBigTable {
                     }
                 }
             }
+
+            // 释放资源
+            indexResultScanner.close();
 
         } catch (IOException e) {
             e.printStackTrace();
@@ -347,6 +356,10 @@ public class HbaseBigTable implements IBigTable {
                     }
                 }
             }
+
+            // 释放资源
+            dataResultScanner.close();
+
             // 返回数据集
             return dataList;
 
