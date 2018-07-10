@@ -13,7 +13,9 @@ import org.apache.hadoop.hbase.HColumnDescriptor;
 import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.*;
+import org.apache.hadoop.hbase.filter.Filter;
 import org.apache.hadoop.hbase.filter.KeyOnlyFilter;
+import org.apache.hadoop.hbase.filter.PageFilter;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -315,9 +317,9 @@ public class HbaseBigTable implements IBigTable {
     }
 
     @Override
-    public <T extends DataPackObject> List<T> queryData(String vinOrCode, Class<T> clazz, Date startTime, Date endTime) {
+    public <T extends DataPackObject> List<T> queryData(String vin, Class<T> clazz, Date startTime, Date endTime) {
         // 验证参数信息
-        if (null == vinOrCode || null == startTime || null == endTime) {
+        if (null == vin || null == startTime || null == endTime) {
             throw new IllegalArgumentException("the params can't be null");
         }
         // 查询开始时间必须小于结束时间
@@ -333,8 +335,8 @@ public class HbaseBigTable implements IBigTable {
             // 构建查询条件
             Scan scan = new Scan();
             // 计算查询区间
-            String startTimeRowKey = RowKeyUtil.makeMinRowKey(vinOrCode, DataPackObjectUtils.getDataType(clazz), DataPackObjectUtils.convertDetectionDateToString(startTime));
-            String stopTimeRowKey = RowKeyUtil.makeMinRowKey(vinOrCode, DataPackObjectUtils.getDataType(clazz), DataPackObjectUtils.convertDetectionDateToString(endTime));
+            String startTimeRowKey = RowKeyUtil.makeMinRowKey(vin, DataPackObjectUtils.getDataType(clazz), DataPackObjectUtils.convertDetectionDateToString(startTime));
+            String stopTimeRowKey = RowKeyUtil.makeMinRowKey(vin, DataPackObjectUtils.getDataType(clazz), DataPackObjectUtils.convertDetectionDateToString(endTime));
             // 设置查询数据范围
             scan.setStartRow(Bytes.toBytes(startTimeRowKey));
             scan.setStopRow(Bytes.toBytes(stopTimeRowKey));
@@ -359,6 +361,67 @@ public class HbaseBigTable implements IBigTable {
 
             // 释放资源
             dataResultScanner.close();
+
+            // 返回数据集
+            return dataList;
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    @Override
+    public <T extends DataPackObject> List<T> queryData(String vin, Class<T> clazz, Integer pageSize, String startKey) {
+        // 验证参数信息
+        if (null == vin || null == pageSize) {
+            throw new IllegalArgumentException("the params can't be null");
+        }
+
+        // 读取数据
+        try {
+            // 查询表
+            Table dataTable = connection.getTable(TableName.valueOf(TABLE_NAME_TELEMETRY));
+
+            // 构建查询条件
+            Scan scan = new Scan();
+            String startRowKey = startKey;
+            if (StringUtils.isBlank(startKey)) {
+                // 如果不传startKey，默认按照时间倒序查询
+                startRowKey = RowKeyUtil.makeMaxRowKey(vin, DataPackObjectUtils.getDataType(clazz), "");
+            }
+            String stopRowKey = RowKeyUtil.makeMinRowKey(vin, DataPackObjectUtils.getDataType(clazz), "");
+            // 设置查询数据范围
+            scan.setStartRow(Bytes.toBytes(startRowKey));
+            scan.setStopRow(Bytes.toBytes(stopRowKey));
+            // 设置过滤器
+            Filter filter = new PageFilter(StringUtils.isBlank(startKey) ? pageSize : pageSize + 1);
+            scan.setFilter(filter);
+            // 按照时间倒序
+            scan.setReversed(true);
+
+            // 遍历查询结果集
+            String jsonString;
+            List<T> dataList = new ArrayList<>();
+            ResultScanner scanner = dataTable.getScanner(scan);
+            for (Result result : scanner) {
+                // 获得json字符串
+                jsonString = Bytes.toString(result.getValue(Bytes.toBytes(COLUMN_FAMILY_NAME), Bytes.toBytes(COLUMN_NAME_DATA)));
+                if (StringUtils.isNotBlank(jsonString)) {
+                    try {
+                        // 添加对象数据
+                        if (!Bytes.toString(result.getRow()).equals(startKey)) {
+                            //System.out.println(Bytes.toString(result.getRow()));
+                            dataList.add(DataPackObjectUtils.fromJson(jsonString, clazz));
+                        }
+                    } catch (Exception e) {
+                        logger.error("queryData: json转object异常, ", e);
+                    }
+                }
+            }
+
+            // 释放资源
+            scanner.close();
 
             // 返回数据集
             return dataList;
