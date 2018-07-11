@@ -116,9 +116,11 @@ public class HbaseBigTableTest {
     @Ignore
     public void testQueryDataByKey() throws Exception {
         int pageSize = 5;
-        List<DataPackTrip> tripList1 = bigTable.queryData("LSBAAAAAAZZ001888", DataPackTrip.class, pageSize, null);
+        List<DataPackTrip> tripList1 = bigTable.queryData("LSBAAAAAAZZ000001", DataPackTrip.class, pageSize, null);
+        tripList1.forEach(object -> System.out.println(object.getId()));
         Assert.assertEquals(pageSize, tripList1.size());
-        List<DataPackTrip> tripList2 = bigTable.queryData("LSBAAAAAAZZ001888", DataPackTrip.class, pageSize, "98ac000LSBAAAAAAZZ001888TRIP###########20180615120000####6718");
+        List<DataPackTrip> tripList2 = bigTable.queryData("LSBAAAAAAZZ000001", DataPackTrip.class, pageSize, "bc3c000LSBAAAAAAZZ000001TRIP###########20180615120000####8242");
+        tripList2.forEach(object -> System.out.println(object.getId()));
         Assert.assertEquals(pageSize, tripList2.size());
     }
 

@@ -402,6 +402,7 @@ public class HbaseBigTable implements IBigTable {
 
             // 遍历查询结果集
             String jsonString;
+            T data;
             List<T> dataList = new ArrayList<>();
             ResultScanner scanner = dataTable.getScanner(scan);
             for (Result result : scanner) {
@@ -412,7 +413,12 @@ public class HbaseBigTable implements IBigTable {
                         // 添加对象数据
                         if (!Bytes.toString(result.getRow()).equals(startKey)) {
                             //System.out.println(Bytes.toString(result.getRow()));
-                            dataList.add(DataPackObjectUtils.fromJson(jsonString, clazz));
+                            // 转换为json对象
+                            data = DataPackObjectUtils.fromJson(jsonString, clazz);
+                            // 使用属性名id装载RowKey值
+                            data.setId(Bytes.toString(result.getRow()));
+                            // 添加返回值
+                            dataList.add(data);
                         }
                     } catch (Exception e) {
                         logger.error("queryData: json转object异常, ", e);
