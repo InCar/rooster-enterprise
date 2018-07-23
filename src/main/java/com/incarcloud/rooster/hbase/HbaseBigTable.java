@@ -13,9 +13,7 @@ import org.apache.hadoop.hbase.HColumnDescriptor;
 import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.*;
-import org.apache.hadoop.hbase.filter.Filter;
-import org.apache.hadoop.hbase.filter.KeyOnlyFilter;
-import org.apache.hadoop.hbase.filter.PageFilter;
+import org.apache.hadoop.hbase.filter.*;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -62,6 +60,11 @@ public class HbaseBigTable implements IBigTable {
      * 数据列
      */
     private static final String COLUMN_NAME_DATA = "data";
+
+    /**
+     * 隐藏列
+     */
+    private static final String COLUMN_NAME_HIDDEN = "hidden";
 
     /**
      * 时间格式化
@@ -119,7 +122,7 @@ public class HbaseBigTable implements IBigTable {
     /**
      * 验证参数
      *
-     * @param props
+     * @param props 连接属性
      * @return
      */
     protected boolean validate(Properties props) {
@@ -136,6 +139,15 @@ public class HbaseBigTable implements IBigTable {
             return false;
         }
         return true;
+    }
+
+    /**
+     * 获得HBase连接对象
+     *
+     * @return
+     */
+    public Connection getConnection() {
+        return this.connection;
     }
 
     @Override
@@ -383,20 +395,34 @@ public class HbaseBigTable implements IBigTable {
             // 查询表
             Table dataTable = connection.getTable(TableName.valueOf(TABLE_NAME_TELEMETRY));
 
-            // 构建查询条件
+            /* 构建查询条件 */
             Scan scan = new Scan();
+
+            // 计算start和stop键值
             String startRowKey = startKey;
             if (StringUtils.isBlank(startKey)) {
                 // 如果不传startKey，默认按照时间倒序查询
                 startRowKey = RowKeyUtil.makeMaxRowKey(vin, DataPackObjectUtils.getDataType(clazz), "");
             }
             String stopRowKey = RowKeyUtil.makeMinRowKey(vin, DataPackObjectUtils.getDataType(clazz), "");
+
             // 设置查询数据范围
-            scan.setStartRow(Bytes.toBytes(startRowKey));
+            byte[] startRowBytes = Bytes.toBytes(startRowKey);
+            startRowBytes = Bytes.copy(startRowBytes, 0, startRowBytes.length - 1);
+            scan.setStartRow(startRowBytes);
             scan.setStopRow(Bytes.toBytes(stopRowKey));
+
+            // 构建过滤器
+            FilterList filterList = new FilterList();
+            filterList.addFilter(new SkipFilter(new SingleColumnValueFilter(Bytes.toBytes(COLUMN_FAMILY_NAME),
+                    Bytes.toBytes(COLUMN_NAME_HIDDEN),
+                    CompareFilter.CompareOp.EQUAL,
+                    Bytes.toBytes(true)))); //单列值过滤器
+            filterList.addFilter(new PageFilter(pageSize)); //分页过滤器
+
             // 设置过滤器
-            Filter filter = new PageFilter(StringUtils.isBlank(startKey) ? pageSize : pageSize + 1);
-            scan.setFilter(filter);
+            scan.setFilter(filterList);
+
             // 按照时间倒序
             scan.setReversed(true);
 
@@ -407,19 +433,20 @@ public class HbaseBigTable implements IBigTable {
             ResultScanner scanner = dataTable.getScanner(scan);
             for (Result result : scanner) {
                 // 获得json字符串
+                byte[] hidden = result.getValue(Bytes.toBytes(COLUMN_FAMILY_NAME), Bytes.toBytes(COLUMN_NAME_HIDDEN));
+                if (null != hidden) {
+                    System.out.println(Bytes.toBoolean(hidden));
+                }
                 jsonString = Bytes.toString(result.getValue(Bytes.toBytes(COLUMN_FAMILY_NAME), Bytes.toBytes(COLUMN_NAME_DATA)));
                 if (StringUtils.isNotBlank(jsonString)) {
                     try {
-                        // 添加对象数据
-                        if (!Bytes.toString(result.getRow()).equals(startKey)) {
-                            //System.out.println(Bytes.toString(result.getRow()));
-                            // 转换为json对象
-                            data = DataPackObjectUtils.fromJson(jsonString, clazz);
-                            // 使用属性名id装载RowKey值
-                            data.setId(Bytes.toString(result.getRow()));
-                            // 添加返回值
-                            dataList.add(data);
-                        }
+                        //System.out.println(Bytes.toString(result.getRow()));
+                        // 转换为json对象
+                        data = DataPackObjectUtils.fromJson(jsonString, clazz);
+                        // 使用属性名id装载RowKey值
+                        data.setId(Bytes.toString(result.getRow()));
+                        // 添加返回值
+                        dataList.add(data);
                     } catch (Exception e) {
                         logger.error("queryData: json转object异常, ", e);
                     }
