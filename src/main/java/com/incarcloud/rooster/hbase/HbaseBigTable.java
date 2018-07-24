@@ -417,7 +417,7 @@ public class HbaseBigTable implements IBigTable {
             filterList.addFilter(new SkipFilter(new SingleColumnValueFilter(Bytes.toBytes(COLUMN_FAMILY_NAME),
                     Bytes.toBytes(COLUMN_NAME_HIDDEN),
                     CompareFilter.CompareOp.EQUAL,
-                    Bytes.toBytes(true)))); //单列值过滤器
+                    new NullComparator()))); //单列值过滤器
             filterList.addFilter(new PageFilter(pageSize)); //分页过滤器
 
             // 设置过滤器
@@ -433,10 +433,6 @@ public class HbaseBigTable implements IBigTable {
             ResultScanner scanner = dataTable.getScanner(scan);
             for (Result result : scanner) {
                 // 获得json字符串
-                byte[] hidden = result.getValue(Bytes.toBytes(COLUMN_FAMILY_NAME), Bytes.toBytes(COLUMN_NAME_HIDDEN));
-                if (null != hidden) {
-                    System.out.println(Bytes.toBoolean(hidden));
-                }
                 jsonString = Bytes.toString(result.getValue(Bytes.toBytes(COLUMN_FAMILY_NAME), Bytes.toBytes(COLUMN_NAME_DATA)));
                 if (StringUtils.isNotBlank(jsonString)) {
                     try {
