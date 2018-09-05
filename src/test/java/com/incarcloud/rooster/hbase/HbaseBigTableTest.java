@@ -41,20 +41,32 @@ public class HbaseBigTableTest {
     public static final String HBASE_MASTER = "10.0.11.35:60000";
 
     private IBigTable bigTable;
+    private Connection connection;
 
     @Before
     public void begin() throws Exception {
+        // Properties
         Properties props = new Properties();
         props.put("hbase.zookeeper.quorum", HBASE_ZK_QUORUM);
         props.put("hbase.zookeeper.property.clientPort", HBASE_Zk_PORT);
         props.put("hbase.master", HBASE_MASTER);
         bigTable = new HbaseBigTable(props);
+
+        // Connection
+        Configuration configuration = HBaseConfiguration.create();
+        configuration.set("hbase.zookeeper.quorum", HBASE_ZK_QUORUM);
+        configuration.set("hbase.zookeeper.property.clientPort", HBASE_Zk_PORT);
+        configuration.set("hbase.master", HBASE_MASTER);
+        connection = ConnectionFactory.createConnection(configuration);
     }
 
     @After
-    public void end() {
+    public void end() throws IOException {
         if (null != bigTable) {
             bigTable.close();
+        }
+        if (null != connection) {
+            connection.close();
         }
     }
 
@@ -112,28 +124,9 @@ public class HbaseBigTableTest {
         Assert.assertTrue(flag);
     }
 
-    @Test
     @Ignore
-    public void testQueryDataByKey() throws Exception {
-        int pageSize = 5;
-        List<DataPackTrip> tripList1 = bigTable.queryData("LSBAAAAAAZZ000001", DataPackTrip.class, pageSize, null);
-        tripList1.forEach(object -> System.out.println(object.getId()));
-        Assert.assertEquals(pageSize, tripList1.size());
-        List<DataPackTrip> tripList2 = bigTable.queryData("LSBAAAAAAZZ000001", DataPackTrip.class, pageSize, "bc3c000LSBAAAAAAZZ000001TRIP###########20180706120000####0001");
-        tripList2.forEach(object -> System.out.println(object.getId()));
-        Assert.assertEquals(pageSize - 1, tripList2.size());
-    }
-
-    @Test
-    @Ignore
+    @Test(expected = Exception.class)
     public void createTable() throws IOException {
-        // Connection
-        Configuration configuration = HBaseConfiguration.create();
-        configuration.set("hbase.zookeeper.quorum", HBASE_ZK_QUORUM);
-        configuration.set("hbase.zookeeper.property.clientPort", HBASE_Zk_PORT);
-        configuration.set("hbase.master", HBASE_MASTER);
-        Connection connection = ConnectionFactory.createConnection(configuration);
-
         // Admin
         Admin admin = connection.getAdmin();
 
@@ -170,14 +163,19 @@ public class HbaseBigTableTest {
 
     @Test
     @Ignore
-    public void testQueryMaxKey() throws Exception {
-        // Connection
-        Configuration configuration = HBaseConfiguration.create();
-        configuration.set("hbase.zookeeper.quorum", HBASE_ZK_QUORUM);
-        configuration.set("hbase.zookeeper.property.clientPort", HBASE_Zk_PORT);
-        configuration.set("hbase.master", HBASE_MASTER);
-        Connection connection = ConnectionFactory.createConnection(configuration);
+    public void testQueryDataByKey() throws Exception {
+        int pageSize = 5;
+        List<DataPackTrip> tripList1 = bigTable.queryData("LSBAAAAAAZZ000001", DataPackTrip.class, pageSize, null);
+        tripList1.forEach(object -> System.out.println(object.getId()));
+        Assert.assertEquals(pageSize, tripList1.size());
+        List<DataPackTrip> tripList2 = bigTable.queryData("LSBAAAAAAZZ000001", DataPackTrip.class, pageSize, "bc3c000LSBAAAAAAZZ000001TRIP###########20180706120000####0001");
+        tripList2.forEach(object -> System.out.println(object.getId()));
+        Assert.assertEquals(pageSize - 1, tripList2.size());
+    }
 
+    @Test
+    @Ignore
+    public void testQueryMaxKey() throws Exception {
         // Filter
         Scan scan = new Scan();
         scan.setFilter(new KeyOnlyFilter());
@@ -208,5 +206,57 @@ public class HbaseBigTableTest {
                 System.out.println(dateFormat.format(new Date(cal.getTimeInMillis())));
             }
         }
+
+        Assert.assertNotNull(maxRowKey);
+    }
+
+    @Test
+    @Ignore
+    public void testDeleteMaxErrorKeys() throws Exception {
+        // Filter
+        Scan scan = new Scan();
+        scan.setFilter(new KeyOnlyFilter());
+        scan.setReversed(true);
+        scan.setBatch(1);
+        Table table = connection.getTable(TableName.valueOf(TABLE_NAME_SECOND_INDEX));
+
+        // Query
+        String maxRowKey = null;
+        Delete delete;
+        DateFormat dateFormat = new SimpleDateFormat("yyyyMMddHHmmss");
+
+        while (true) {
+            // Query
+            ResultScanner resultScanner = table.getScanner(scan);
+            for (Result result : resultScanner) {
+                maxRowKey = Bytes.toString(result.getRow());
+                break;
+            }
+            resultScanner.close();
+
+            // deleteall 'second_index', 'DETECTIONTIME_20181128081519_000LGWEEUK53HE000039OVERVIEW#######0001'
+            if (StringUtils.isNotBlank(maxRowKey)) {
+                String[] splitStrings = maxRowKey.split("_");
+                if (null != splitStrings && 1 < splitStrings.length) {
+                    //System.out.println(splitStrings[1]);
+                    long t = dateFormat.parse(splitStrings[1]).getTime();
+                    if (t > System.currentTimeMillis()) {
+                        delete = new Delete(Bytes.toBytes(maxRowKey));
+                        table.delete(delete);
+                        System.out.println("delete: " + maxRowKey);
+                    } else {
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+    @Test
+    @Ignore
+    public void testQueryTrips() {
+        List<DataPackTrip> tripList = bigTable.queryData("LGWEEUK53HE000040", DataPackTrip.class, 5, null);
+        tripList.forEach(object -> System.out.println(object));
+        Assert.assertNotEquals(0, tripList.size());
     }
 }
