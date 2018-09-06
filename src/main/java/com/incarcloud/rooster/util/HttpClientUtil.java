@@ -31,24 +31,24 @@ import java.util.Map.Entry;
  * http工具类
  *
  * @author fanbeibei
- *         <p>
- *         <p>
- *         maven
- *         <dependency>
- *         <groupId>org.apache.httpcomponents</groupId>
- *         <artifactId>httpclient</artifactId>
- *         <version>4.5.2</version>
- *         </dependency>
- *         <dependency>
- *         <groupId>org.apache.httpcomponents</groupId>
- *         <artifactId>httpcore</artifactId>
- *         <version>4.3.3</version>
- *         </dependency>
- *         <dependency>
- *         <groupId>org.apache.httpcomponents</groupId>
- *         <artifactId>httpmime</artifactId>
- *         <version>4.5.2</version>
- *         </dependency>
+ * <p>
+ * <p>
+ * maven
+ * <dependency>
+ * <groupId>org.apache.httpcomponents</groupId>
+ * <artifactId>httpclient</artifactId>
+ * <version>4.5.2</version>
+ * </dependency>
+ * <dependency>
+ * <groupId>org.apache.httpcomponents</groupId>
+ * <artifactId>httpcore</artifactId>
+ * <version>4.3.3</version>
+ * </dependency>
+ * <dependency>
+ * <groupId>org.apache.httpcomponents</groupId>
+ * <artifactId>httpmime</artifactId>
+ * <version>4.5.2</version>
+ * </dependency>
  */
 public class HttpClientUtil {
 
@@ -96,7 +96,6 @@ public class HttpClientUtil {
      */
     public static String postForStr(String url, Map<String, String> param, String charset, int timeout,
                                     HttpHost proxy) {
-
         // 创建HttpClientBuilder
         HttpClientBuilder httpClientBuilder = HttpClientBuilder.create();
         // HttpClient
@@ -149,9 +148,6 @@ public class HttpClientUtil {
         return null;
     }
 
-
-
-
     /**
      * 发送application/json请求返回字符串
      *
@@ -161,10 +157,9 @@ public class HttpClientUtil {
      * @param timeout 超时时间（毫秒）
      * @return
      */
-    public static String postJson(String url,  String json, String charset, int timeout) {
-        return postJson(url,json,charset,timeout,null);
+    public static String postJson(String url, String json, String charset, int timeout) {
+        return postJson(url, json, charset, timeout, null);
     }
-
 
     /**
      * 发送application/json请求返回字符串
@@ -174,21 +169,20 @@ public class HttpClientUtil {
      * @param charset 编码
      * @return
      */
-    public static String postJson(String url,  String json, String charset) {
-        return postJson(url,json,charset,DEFULT_TIMEOUT,null);
+    public static String postJson(String url, String json, String charset) {
+        return postJson(url, json, charset, DEFULT_TIMEOUT, null);
     }
 
     /**
      * 发送application/json请求返回字符串
      *
-     * @param url     请求地址
-     * @param json    要发送的json数据
+     * @param url  请求地址
+     * @param json 要发送的json数据
      * @return
      */
-    public static String postJson(String url,  String json) {
-        return postJson(url,json,DEFULT_CHARSET,DEFULT_TIMEOUT,null);
+    public static String postJson(String url, String json) {
+        return postJson(url, json, DEFULT_CHARSET, DEFULT_TIMEOUT, null);
     }
-
 
     /**
      * 发送application/json请求返回字符串
@@ -200,9 +194,8 @@ public class HttpClientUtil {
      * @param proxy   代理
      * @return
      */
-    public static String postJson(String url,  String json, String charset, int timeout,
+    public static String postJson(String url, String json, String charset, int timeout,
                                   HttpHost proxy) {
-
         // 创建HttpClientBuilder
         HttpClientBuilder httpClientBuilder = HttpClientBuilder.create();
         // HttpClient
@@ -226,7 +219,7 @@ public class HttpClientUtil {
 
             // 创建参数队列
             if (!StringUtils.isBlank(json)) {
-                StringEntity stringEntity = new StringEntity(json,charset);
+                StringEntity stringEntity = new StringEntity(json, charset);
                 httpPost.setEntity(stringEntity);
             }
 
@@ -258,7 +251,6 @@ public class HttpClientUtil {
 
         return null;
     }
-
 
     /**
      * 发送get请求返回字符串
@@ -306,7 +298,6 @@ public class HttpClientUtil {
         try {
 
             // 创建参数队列
-
             if (null != param) {
                 StringBuilder urlStr = new StringBuilder(url);
                 urlStr.append("?");
@@ -315,7 +306,6 @@ public class HttpClientUtil {
                 }
 
                 url = urlStr.toString();
-
             }
 
             HttpGet httpGet = new HttpGet(url);

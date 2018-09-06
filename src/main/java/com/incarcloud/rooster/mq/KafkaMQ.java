@@ -12,7 +12,7 @@ import java.util.concurrent.ConcurrentMap;
 
 /**
  * MQ Kafka实现
- *
+ * <p>
  * Created by Kong on 2018/1/11.
  */
 public class KafkaMQ implements IBigMQ {

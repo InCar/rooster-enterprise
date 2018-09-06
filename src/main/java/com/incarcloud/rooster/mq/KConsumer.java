@@ -25,6 +25,9 @@ public class KConsumer {
      */
     private static Logger s_logger = LoggerFactory.getLogger(KConsumer.class);
 
+    /**
+     * 消费者
+     */
     private KafkaConsumer<String, byte[]> consumer;
 
     /**
@@ -33,20 +36,19 @@ public class KConsumer {
     private List<String> topicList;
 
     /**
+     * 构造函数
+     *
      * @param topic 订阅主题
      * @param props 消费者配置
      */
     public KConsumer(String topic, Properties props) {
-
-
         if (StringUtils.isBlank(topic)) {
             throw new IllegalArgumentException();
         }
 
         this.topicList = Arrays.asList(topic);
 
-
-        if (!validConf(props)) {
+        if (!validate(props)) {
             throw new IllegalArgumentException();
         }
 
@@ -66,14 +68,13 @@ public class KConsumer {
         consumer.subscribe(topicList);
     }
 
-
     /**
      * 验证参数
      *
-     * @param props
+     * @param props 消费者配置
      * @return
      */
-    protected boolean validConf(Properties props) {
+    protected boolean validate(Properties props) {
         if (null == props) {
             return false;
         }
@@ -92,6 +93,8 @@ public class KConsumer {
     }
 
     /**
+     * 批量消费
+     *
      * @param size 批次大小
      * @return
      */
@@ -121,7 +124,6 @@ public class KConsumer {
             s_logger.error(e.getMessage());
         }
 
-
         if (0 == msgList.size()) {
             return null;
         }
@@ -135,5 +137,4 @@ public class KConsumer {
     public void close() {
         consumer.close();
     }
-
 }

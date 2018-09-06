@@ -1,10 +1,7 @@
 package com.incarcloud.rooster.cache;
 
 import org.springframework.data.geo.Point;
-import org.springframework.data.redis.core.BoundGeoOperations;
-import org.springframework.data.redis.core.HashOperations;
-import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.data.redis.core.ValueOperations;
+import org.springframework.data.redis.core.*;
 
 import java.util.List;
 import java.util.Set;
@@ -34,6 +31,11 @@ public class RedisCacheManager implements ICacheManager {
     private HashOperations<String, String, String> hashOperations;
 
     /**
+     * Spring Redis List操作对象
+     */
+    private ListOperations<String, String> listOperations;
+
+    /**
      * 注入Spring Redis操作实现
      *
      * @param redisTemplate Spring Redis操作对象
@@ -42,6 +44,7 @@ public class RedisCacheManager implements ICacheManager {
         this.redisTemplate = redisTemplate;
         this.valueOperations = redisTemplate.opsForValue();
         this.hashOperations = redisTemplate.opsForHash();
+        this.listOperations = redisTemplate.opsForList();
     }
 
     @Override
@@ -90,7 +93,7 @@ public class RedisCacheManager implements ICacheManager {
     }
 
     @Override
-    public Long hsize(String key) {
+    public long hsize(String key) {
         return hashOperations.size(key);
     }
 
@@ -115,5 +118,20 @@ public class RedisCacheManager implements ICacheManager {
     public void gdelete(String key, String flagKey) {
         BoundGeoOperations<String, String> boundGeoOperations = redisTemplate.boundGeoOps(key);
         boundGeoOperations.geoRemove(flagKey);
+    }
+
+    @Override
+    public void lpush(String key, String value) {
+        listOperations.leftPush(key, value);
+    }
+
+    @Override
+    public String rpop(String key) {
+        return listOperations.rightPop(key);
+    }
+
+    @Override
+    public long llen(String key) {
+        return listOperations.size(key);
     }
 }

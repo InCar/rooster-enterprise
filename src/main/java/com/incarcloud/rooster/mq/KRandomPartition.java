@@ -18,7 +18,6 @@ public class KRandomPartition implements Partitioner {
 
     @Override
     public void configure(Map<String, ?> configs) {
-
     }
 
     @Override
