@@ -2,7 +2,6 @@ package com.incarcloud.rooster.mq;/**
  * Created by fanbeibei on 2017/6/28.
  */
 
-import org.apache.kafka.clients.producer.Callback;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
@@ -27,13 +26,20 @@ public class KProducer {
      */
     private static Logger s_logger = LoggerFactory.getLogger(KProducer.class);
 
+    /**
+     * 生产者
+     */
     private KafkaProducer<String, byte[]> producer;
 
+    /**
+     * 构造函数
+     *
+     * @param props 生产者配置
+     */
     public KProducer(Properties props) {
-        if (!validConf(props)) {
+        if (!validate(props)) {
             throw new IllegalArgumentException();
         }
-
 
 //        props.put("bootstrap.servers", "localhost:9092");
 
@@ -55,10 +61,10 @@ public class KProducer {
     /**
      * 验证参数
      *
-     * @param props
+     * @param props 生产者配置
      * @return
      */
-    protected boolean validConf(Properties props) {
+    protected boolean validate(Properties props) {
         if (null == props) {
             return false;
         }
@@ -76,26 +82,21 @@ public class KProducer {
      *
      * @param topic   主题
      * @param content 内容
-     * @return offset
+     * @return offset偏移量
      */
     public long send(String topic, byte[] content) {
-
         //key是为了确定丢到哪个partition
-        String key = new Random().nextInt(100) + "";
+        String key = String.valueOf(new Random().nextInt(100));
+
         try {
-
             Future<RecordMetadata> future =
-                    producer.send(new ProducerRecord<String, byte[]>(topic, key, content),
-                            new Callback() {
-                                @Override
-                                public void onCompletion(RecordMetadata metadata, Exception exception) {
-                                    s_logger.debug("callback  " + metadata);
-                                }
-                            });
+                    producer.send(new ProducerRecord<>(topic, key, content),
+                            (metadata, exception) -> s_logger.debug("Kafka send callback metadata:  " + metadata));
 
-//        future.get();
+//          future.get();
+
             long offset = future.get().offset();
-            s_logger.debug("success send ,offset " + offset);
+            s_logger.debug("Success send, offset: " + offset);
 
             return offset;
         } catch (Exception e) {
@@ -124,15 +125,11 @@ public class KProducer {
                 String key = new Random().nextInt(100) + "";
 
                 Future<RecordMetadata> future =
-                        producer.send(new ProducerRecord<String, byte[]>(topic, key, content),
-                                new Callback() {
-                                    @Override
-                                    public void onCompletion(RecordMetadata metadata, Exception exception) {
-                                        s_logger.debug("callback  " + metadata);
-                                    }
-                                });
+                        producer.send(new ProducerRecord<>(topic, key, content),
+                                (metadata, exception) -> s_logger.debug("callback  " + metadata));
 
-//        future.get();
+//              future.get();
+
                 long offset = future.get().offset();
                 s_logger.debug("success send ,offset " + offset);
                 offsetList.add(offset);
@@ -156,6 +153,4 @@ public class KProducer {
     public void close() {
         producer.close();
     }
-
-
 }
