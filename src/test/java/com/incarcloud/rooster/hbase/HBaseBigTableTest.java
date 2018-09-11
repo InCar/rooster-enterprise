@@ -1,13 +1,9 @@
 package com.incarcloud.rooster.hbase;
 
-import com.incarcloud.rooster.bigtable.IBigTable;
+import com.incarcloud.rooster.datapack.DataPackAlarm;
 import com.incarcloud.rooster.datapack.DataPackTrip;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseConfiguration;
-import org.apache.hadoop.hbase.HColumnDescriptor;
-import org.apache.hadoop.hbase.HTableDescriptor;
-import org.apache.hadoop.hbase.TableName;
-import org.apache.hadoop.hbase.client.Admin;
 import org.apache.hadoop.hbase.client.Connection;
 import org.apache.hadoop.hbase.client.ConnectionFactory;
 import org.junit.*;
@@ -27,17 +23,21 @@ import java.util.Properties;
  */
 public class HBaseBigTableTest {
 
-    // HBase连接参数
+    /**
+     * HBase连接参数
+     */
     public static final String HBASE_ZK_QUORUM = "10.0.11.34,10.0.11.35,10.0.11.39";
     public static final String HBASE_Zk_PORT = "2181";
     public static final String HBASE_MASTER = "10.0.11.35:60000";
 
-    // HBase数据表和列名
+    /**
+     * HBase数据表和列名
+     */
     private static final String TABLE_NAME_VEHICLE = "gmmc:vehicle";
     private static final String TABLE_NAME_TELEMETRY = "gmmc:telemetry";
     private static final String COLUMN_FAMILY_NAME = "base";
 
-    private IBigTable bigTable;
+    private HBaseBigTable bigTable;
     private Connection connection;
 
     @Before
@@ -69,6 +69,14 @@ public class HBaseBigTableTest {
 
     @Test
     @Ignore
+    public void testGetData() throws Exception {
+        DataPackAlarm dataPackAlarm = bigTable.getData("bc3c000LSBAAAAAAZZ000001ALARM##########20180910151538####0001", DataPackAlarm.class);
+        System.out.println(dataPackAlarm);
+        Assert.assertNotNull(dataPackAlarm);
+    }
+
+    @Test
+    @Ignore
     public void testQueryDataList() throws Exception {
         DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
         Date startTime = dateFormat.parse("2017-12-15 11:46:45");
@@ -79,33 +87,6 @@ public class HBaseBigTableTest {
         }
         System.out.println(dataList);
         Assert.assertEquals(0, dataList.size());
-    }
-
-    @Ignore
-    @Test(expected = Exception.class)
-    public void createTable() throws IOException {
-        // Admin
-        Admin admin = connection.getAdmin();
-
-        // create vehicle
-        TableName tableName = TableName.valueOf(TABLE_NAME_VEHICLE);
-        if (admin.tableExists(tableName)) {
-            // delete
-            admin.disableTable(tableName);
-            admin.deleteTable(tableName);
-        }
-        HTableDescriptor desc = new HTableDescriptor(tableName);
-        admin.createTable(desc.addFamily(new HColumnDescriptor(COLUMN_FAMILY_NAME)));
-
-        // create telemetry
-        tableName = TableName.valueOf(TABLE_NAME_TELEMETRY);
-        if (admin.tableExists(tableName)) {
-            // delete
-            admin.disableTable(tableName);
-            admin.deleteTable(tableName);
-        }
-        desc = new HTableDescriptor(tableName);
-        admin.createTable(desc.addFamily(new HColumnDescriptor(COLUMN_FAMILY_NAME)));
     }
 
     @Test
