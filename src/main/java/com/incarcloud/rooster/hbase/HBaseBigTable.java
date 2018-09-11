@@ -154,6 +154,35 @@ public class HBaseBigTable implements IBigTable {
     }
 
     @Override
+    public <T extends DataPackObject> T getData(String rowKey, Class<T> clazz) {
+        // 验证参数信息
+        if (StringUtils.isBlank(rowKey)) {
+            throw new IllegalArgumentException("the row key can't be null");
+        }
+
+        try {
+            // 读取数据
+            Table table = connection.getTable(TableName.valueOf(TABLE_NAME_TELEMETRY));
+            Result result = table.get(new Get(Bytes.toBytes(rowKey)));
+
+            // 获得json字符串
+            String jsonString = Bytes.toString(result.getValue(Bytes.toBytes(COLUMN_FAMILY_NAME), Bytes.toBytes(COLUMN_NAME_DATA)));
+
+            // 使用属性名id装载RowKey值
+            T data = DataPackObjectUtil.fromJson(jsonString, clazz);
+            data.setId(Bytes.toString(result.getRow()));
+
+            // 返回结果
+            return data;
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        return null;
+    }
+
+    @Override
     public <T extends DataPackObject> List<T> queryData(String vin, Class<T> clazz, Date startTime, Date endTime) {
         // 验证参数信息
         if (null == vin || null == startTime || null == endTime) {
@@ -167,7 +196,7 @@ public class HBaseBigTable implements IBigTable {
         // 读取数据
         try {
             // 根据开始和结束时间查询数据
-            Table dataTable = connection.getTable(TableName.valueOf(TABLE_NAME_TELEMETRY));
+            Table table = connection.getTable(TableName.valueOf(TABLE_NAME_TELEMETRY));
 
             // 构建查询条件
             Scan scan = new Scan();
@@ -180,16 +209,22 @@ public class HBaseBigTable implements IBigTable {
 
             // 遍历查询结果集
             String jsonString;
+            T data;
             List<T> dataList = new ArrayList<>();
-            ResultScanner dataResultScanner = dataTable.getScanner(scan);
-            for (Result dataResult : dataResultScanner) {
+            ResultScanner scanner = table.getScanner(scan);
+            for (Result result : scanner) {
                 //System.out.println(Bytes.toString(dataResult.getRow()));
                 // 获得json字符串
-                jsonString = Bytes.toString(dataResult.getValue(Bytes.toBytes(COLUMN_FAMILY_NAME), Bytes.toBytes(COLUMN_NAME_DATA)));
+                jsonString = Bytes.toString(result.getValue(Bytes.toBytes(COLUMN_FAMILY_NAME), Bytes.toBytes(COLUMN_NAME_DATA)));
                 if (StringUtils.isNotBlank(jsonString)) {
                     try {
-                        // 添加对象数据
-                        dataList.add(DataPackObjectUtil.fromJson(jsonString, clazz));
+                        //System.out.println(Bytes.toString(result.getRow()));
+                        // 转换为json对象
+                        data = DataPackObjectUtil.fromJson(jsonString, clazz);
+                        // 使用属性名id装载RowKey值
+                        data.setId(Bytes.toString(result.getRow()));
+                        // 添加返回值
+                        dataList.add(data);
                     } catch (Exception e) {
                         logger.error("queryData: json转object异常, ", e);
                     }
@@ -197,7 +232,7 @@ public class HBaseBigTable implements IBigTable {
             }
 
             // 释放资源
-            dataResultScanner.close();
+            scanner.close();
 
             // 返回数据集
             return dataList;
@@ -218,7 +253,7 @@ public class HBaseBigTable implements IBigTable {
         // 读取数据
         try {
             // 查询表
-            Table dataTable = connection.getTable(TableName.valueOf(TABLE_NAME_TELEMETRY));
+            Table table = connection.getTable(TableName.valueOf(TABLE_NAME_TELEMETRY));
 
             /* 构建查询条件 */
             Scan scan = new Scan();
@@ -255,7 +290,7 @@ public class HBaseBigTable implements IBigTable {
             String jsonString;
             T data;
             List<T> dataList = new ArrayList<>();
-            ResultScanner scanner = dataTable.getScanner(scan);
+            ResultScanner scanner = table.getScanner(scan);
             for (Result result : scanner) {
                 // 获得json字符串
                 jsonString = Bytes.toString(result.getValue(Bytes.toBytes(COLUMN_FAMILY_NAME), Bytes.toBytes(COLUMN_NAME_DATA)));
