@@ -183,6 +183,17 @@ public class HBaseBigTable implements IBigTable {
     }
 
     @Override
+    public <T extends DataPackObject> T getData(String vin, Class<T> clazz, Sort sort) {
+        // 读取最早或最近的一条记录
+        List<T> dataList = queryData(vin, clazz, sort, null, null, 1, null);
+        if (null != dataList && 1 == dataList.size()) {
+            // 返回数据记录
+            return dataList.get(0);
+        }
+        return null;
+    }
+
+    @Override
     public <T extends DataPackObject> List<T> queryData(String vin, Class<T> clazz, Date startTime, Date endTime) {
         // 验证参数信息
         if (null == vin || null == startTime || null == endTime) {
@@ -200,9 +211,11 @@ public class HBaseBigTable implements IBigTable {
 
             // 构建查询条件
             Scan scan = new Scan();
+
             // 计算查询区间
-            String startTimeRowKey = RowKeyUtil.makeMinRowKey(vin, DataPackObjectUtil.getDataType(clazz), DataPackObjectUtil.convertDetectionTimeToString(startTime));
-            String stopTimeRowKey = RowKeyUtil.makeMinRowKey(vin, DataPackObjectUtil.getDataType(clazz), DataPackObjectUtil.convertDetectionTimeToString(endTime));
+            String startTimeRowKey = RowKeyUtil.makeMinRowKey(vin, clazz, startTime);
+            String stopTimeRowKey = RowKeyUtil.makeMinRowKey(vin, clazz, endTime);
+
             // 设置查询数据范围
             scan.setStartRow(Bytes.toBytes(startTimeRowKey));
             scan.setStopRow(Bytes.toBytes(stopTimeRowKey));
@@ -213,7 +226,6 @@ public class HBaseBigTable implements IBigTable {
             List<T> dataList = new ArrayList<>();
             ResultScanner scanner = table.getScanner(scan);
             for (Result result : scanner) {
-                //System.out.println(Bytes.toString(dataResult.getRow()));
                 // 获得json字符串
                 jsonString = Bytes.toString(result.getValue(Bytes.toBytes(COLUMN_FAMILY_NAME), Bytes.toBytes(COLUMN_NAME_DATA)));
                 if (StringUtils.isNotBlank(jsonString)) {
@@ -245,6 +257,11 @@ public class HBaseBigTable implements IBigTable {
 
     @Override
     public <T extends DataPackObject> List<T> queryData(String vin, Class<T> clazz, Integer pageSize, String startKey) {
+        return queryData(vin, clazz, Sort.DESC, null, null, pageSize, startKey);
+    }
+
+    @Override
+    public <T extends DataPackObject> List<T> queryData(String vin, Class<T> clazz, Sort sort, Date startTime, Date endTime, Integer pageSize, String startKey) {
         // 验证参数信息
         if (null == vin || null == pageSize) {
             throw new IllegalArgumentException("the params can't be null");
@@ -255,22 +272,67 @@ public class HBaseBigTable implements IBigTable {
             // 查询表
             Table table = connection.getTable(TableName.valueOf(TABLE_NAME_TELEMETRY));
 
-            /* 构建查询条件 */
+            // 构建查询条件
             Scan scan = new Scan();
 
             // 计算start和stop键值
             String startRowKey = startKey;
-            if (StringUtils.isBlank(startKey)) {
-                // 如果不传startKey，默认按照时间倒序查询
-                startRowKey = RowKeyUtil.makeMaxRowKey(vin, DataPackObjectUtil.getDataType(clazz), "");
+            String stopRowKey;
+            if (null == sort || Sort.DESC == sort) {
+                // 如果不传startKey，按照时间倒序查询
+                if (StringUtils.isBlank(startKey)) {
+                    // 判断是否设置了查询结束时间
+                    if (null == endTime) {
+                        // 查询范围比较大
+                        startRowKey = RowKeyUtil.makeMaxRowKey(vin, clazz);
+                    } else {
+                        // 查询范围比较小
+                        startRowKey = RowKeyUtil.makeMaxRowKey(vin, clazz, endTime);
+                    }
+                }
+
+                // 判断是否设置了查询开始时间
+                if (null == startTime) {
+                    // 查询范围比较大
+                    stopRowKey = RowKeyUtil.makeMinRowKey(vin, clazz);
+                } else {
+                    // 查询范围比较小
+                    stopRowKey = RowKeyUtil.makeMinRowKey(vin, clazz, startTime);
+                }
+
+                // 按照时间倒序
+                scan.setReversed(true);
+            } else {
+                // 如果不传startKey，按照时间升序查询
+                if (StringUtils.isBlank(startKey)) {
+                    // 判断是否设置了查询开始时间
+                    if (null == startTime) {
+                        // 查询范围比较大
+                        startRowKey = RowKeyUtil.makeMinRowKey(vin, clazz);
+                    } else {
+                        // 查询范围比较小
+                        startRowKey = RowKeyUtil.makeMinRowKey(vin, clazz, startTime);
+                    }
+                }
+
+                // 判断是否设置了查询结束时间
+                if (null == endTime) {
+                    // 查询范围比较大
+                    stopRowKey = RowKeyUtil.makeMaxRowKey(vin, clazz);
+                } else {
+                    // 查询范围比较小
+                    stopRowKey = RowKeyUtil.makeMaxRowKey(vin, clazz, startTime);
+                }
             }
-            String stopRowKey = RowKeyUtil.makeMinRowKey(vin, DataPackObjectUtil.getDataType(clazz), "");
+
+            // String转Bytes
+            byte[] startRowBytes = Bytes.toBytes(startRowKey);
+            startRowBytes = Bytes.copy(startRowBytes, 0, startRowBytes.length - 1); //包含关系
+            byte[] stopRowBytes = Bytes.toBytes(stopRowKey);
 
             // 设置查询数据范围
-            byte[] startRowBytes = Bytes.toBytes(startRowKey);
-            startRowBytes = Bytes.copy(startRowBytes, 0, startRowBytes.length - 1);
             scan.setStartRow(startRowBytes);
-            scan.setStopRow(Bytes.toBytes(stopRowKey));
+            scan.setStopRow(stopRowBytes);
 
             // 构建过滤器
             FilterList filterList = new FilterList();
@@ -282,9 +344,6 @@ public class HBaseBigTable implements IBigTable {
 
             // 设置过滤器
             scan.setFilter(filterList);
-
-            // 按照时间倒序
-            scan.setReversed(true);
 
             // 遍历查询结果集
             String jsonString;
@@ -318,6 +377,7 @@ public class HBaseBigTable implements IBigTable {
         } catch (IOException e) {
             e.printStackTrace();
         }
+
         return null;
     }
 
