@@ -211,9 +211,11 @@ public class HBaseBigTable implements IBigTable {
 
             // 构建查询条件
             Scan scan = new Scan();
+
             // 计算查询区间
-            String startTimeRowKey = RowKeyUtil.makeMinRowKey(vin, DataPackObjectUtil.getDataType(clazz), DataPackObjectUtil.convertDetectionTimeToString(startTime));
-            String stopTimeRowKey = RowKeyUtil.makeMinRowKey(vin, DataPackObjectUtil.getDataType(clazz), DataPackObjectUtil.convertDetectionTimeToString(endTime));
+            String startTimeRowKey = RowKeyUtil.makeMinRowKey(vin, clazz, startTime);
+            String stopTimeRowKey = RowKeyUtil.makeMinRowKey(vin, clazz, endTime);
+
             // 设置查询数据范围
             scan.setStartRow(Bytes.toBytes(startTimeRowKey));
             scan.setStopRow(Bytes.toBytes(stopTimeRowKey));
@@ -224,7 +226,6 @@ public class HBaseBigTable implements IBigTable {
             List<T> dataList = new ArrayList<>();
             ResultScanner scanner = table.getScanner(scan);
             for (Result result : scanner) {
-                //System.out.println(Bytes.toString(dataResult.getRow()));
                 // 获得json字符串
                 jsonString = Bytes.toString(result.getValue(Bytes.toBytes(COLUMN_FAMILY_NAME), Bytes.toBytes(COLUMN_NAME_DATA)));
                 if (StringUtils.isNotBlank(jsonString)) {

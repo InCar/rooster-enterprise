@@ -116,6 +116,7 @@ public class HBaseBigTableTest {
         List<DataPackTrip> tripList1 = bigTable.queryData("LSBAAAAAAZZ000001", DataPackTrip.class, pageSize, null);
         tripList1.forEach(object -> System.out.println(object.getId()));
         Assert.assertEquals(pageSize, tripList1.size());
+        System.out.println("--");
         List<DataPackTrip> tripList2 = bigTable.queryData("LSBAAAAAAZZ000001", DataPackTrip.class, pageSize, "bc3c000LSBAAAAAAZZ000001TRIP###########20180906120000####0001");
         tripList2.forEach(object -> System.out.println(object.getId()));
         Assert.assertEquals(pageSize, tripList2.size());
