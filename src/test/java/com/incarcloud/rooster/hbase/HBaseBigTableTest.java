@@ -1,12 +1,14 @@
 package com.incarcloud.rooster.hbase;
 
 import com.incarcloud.rooster.bigtable.IBigTable;
-import com.incarcloud.rooster.datapack.DataPackAlarm;
-import com.incarcloud.rooster.datapack.DataPackPosition;
-import com.incarcloud.rooster.datapack.DataPackTrip;
+import com.incarcloud.rooster.datapack.*;
 import com.incarcloud.rooster.util.DataPackObjectUtil;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseConfiguration;
+import org.apache.hadoop.hbase.HColumnDescriptor;
+import org.apache.hadoop.hbase.HTableDescriptor;
+import org.apache.hadoop.hbase.TableName;
+import org.apache.hadoop.hbase.client.Admin;
 import org.apache.hadoop.hbase.client.Connection;
 import org.apache.hadoop.hbase.client.ConnectionFactory;
 import org.junit.*;
@@ -70,6 +72,25 @@ public class HBaseBigTableTest {
         }
         if (null != connection) {
             connection.close();
+        }
+    }
+
+    @Test
+    @Ignore
+    public void testCreateTable() throws Exception {
+        String tableName = "zdmp:telemetry";
+        Connection connection = bigTable.getConnection();
+        Admin admin = connection.getAdmin();
+        if (!admin.tableExists(TableName.valueOf(tableName))) {
+            HTableDescriptor desc = new HTableDescriptor(TableName.valueOf(tableName));
+            HColumnDescriptor family = new HColumnDescriptor("cf1");
+            family.setBlockCacheEnabled(true);
+            family.setInMemory(true);
+            family.setMaxVersions(1);
+            family.setTimeToLive(3 * 365 * (1000 * 60 * 60 * 24));  // 3 years
+            desc.addFamily(family);
+
+            admin.createTable(desc);
         }
     }
 
@@ -139,5 +160,21 @@ public class HBaseBigTableTest {
         List<DataPackTrip> tripList = bigTable.queryData("LSBAAAAAAZZ000001", DataPackTrip.class, 5, null);
         tripList.forEach(object -> System.out.println(object.getId()));
         Assert.assertNotEquals(0, tripList.size());
+    }
+
+    @Test
+    @Ignore
+    public void testQueryActivation() {
+        DataPackActivation activationObject = bigTable.getData("LL66HAB06HB050029", DataPackActivation.class, IBigTable.Sort.ASC);
+        System.out.println(activationObject.getId());
+        Assert.assertNotNull(activationObject);
+    }
+
+    @Test
+    @Ignore
+    public void testQueryLogin() {
+        List<DataPackLogIn> loginList = bigTable.queryData("LL66HAB06HB050029", DataPackLogIn.class, 5, null);
+        loginList.forEach(object -> System.out.println(object.getId()));
+        Assert.assertNotEquals(0, loginList.size());
     }
 }
