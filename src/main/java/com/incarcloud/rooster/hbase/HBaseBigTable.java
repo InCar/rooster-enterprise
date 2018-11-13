@@ -321,7 +321,7 @@ public class HBaseBigTable implements IBigTable {
                     stopRowKey = RowKeyUtil.makeMaxRowKey(vin, clazz);
                 } else {
                     // 查询范围比较小
-                    stopRowKey = RowKeyUtil.makeMaxRowKey(vin, clazz, startTime);
+                    stopRowKey = RowKeyUtil.makeMaxRowKey(vin, clazz, endTime);
                 }
             }
 
