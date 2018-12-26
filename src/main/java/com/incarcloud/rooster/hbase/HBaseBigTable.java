@@ -186,7 +186,7 @@ public class HBaseBigTable implements IBigTable {
     public <T extends DataPackObject> T getData(String vin, Class<T> clazz, Sort sort) {
         // 读取最早或最近的一条记录
         List<T> dataList = queryData(vin, clazz, sort, null, null, 1, null);
-        if (null != dataList && 1 == dataList.size()) {
+        if (null != dataList && 0 < dataList.size()) {
             // 返回数据记录
             return dataList.get(0);
         }
