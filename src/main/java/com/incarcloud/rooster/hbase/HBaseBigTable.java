@@ -168,12 +168,15 @@ public class HBaseBigTable implements IBigTable {
             // 获得json字符串
             String jsonString = Bytes.toString(result.getValue(Bytes.toBytes(COLUMN_FAMILY_NAME), Bytes.toBytes(COLUMN_NAME_DATA)));
 
-            // 使用属性名id装载RowKey值
-            T data = DataPackObjectUtil.fromJson(jsonString, clazz);
-            data.setId(Bytes.toString(result.getRow()));
+            // 判断json字符串是否为空白字符
+            if (StringUtils.isNotBlank(jsonString)) {
+                // 使用属性名id装载RowKey值
+                T data = DataPackObjectUtil.fromJson(jsonString, clazz);
+                data.setId(Bytes.toString(result.getRow()));
 
-            // 返回结果
-            return data;
+                // 返回结果
+                return data;
+            }
 
         } catch (IOException e) {
             e.printStackTrace();

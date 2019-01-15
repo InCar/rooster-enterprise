@@ -155,9 +155,9 @@ public class HBaseBigTableTest {
     }
 
     @Test
-    @Ignore
+//    @Ignore
     public void testQueryTrips() {
-        List<DataPackTrip> tripList = bigTable.queryData("LSBAAAAAAZZ000001", DataPackTrip.class, 5, null);
+        List<DataPackTrip> tripList = bigTable.queryData("LSBAAAAAAZZ000008", DataPackTrip.class, 5, null);
         tripList.forEach(object -> System.out.println(object.getId()));
         Assert.assertNotEquals(0, tripList.size());
     }
@@ -165,7 +165,7 @@ public class HBaseBigTableTest {
     @Test
     @Ignore
     public void testQueryActivation() {
-        DataPackActivation activationObject = bigTable.getData("LL66HAB06HB050029", DataPackActivation.class, IBigTable.Sort.ASC);
+        DataPackActivation activationObject = bigTable.getData("LGWEEUK53HE000051", DataPackActivation.class, IBigTable.Sort.ASC);
         System.out.println(activationObject.getId());
         Assert.assertNotNull(activationObject);
     }
@@ -173,8 +173,29 @@ public class HBaseBigTableTest {
     @Test
     @Ignore
     public void testQueryLogin() {
-        List<DataPackLogIn> loginList = bigTable.queryData("LL66HAB06HB050029", DataPackLogIn.class, 5, null);
-        loginList.forEach(object -> System.out.println(object.getId()));
-        Assert.assertNotEquals(0, loginList.size());
+        String vin = "LGWEEUK53HE000051";
+        DataPackLogIn logIn = bigTable.getData(vin, DataPackLogIn.class, IBigTable.Sort.DESC);
+        System.out.println(logIn);
+        System.out.println(logIn.getSoftwareVersion());
+        Assert.assertNotNull(logIn);
+    }
+
+    @Test
+//    @Ignore
+    public void testQueryOverviewByRowKey() {
+        //String rowKey = "LGWEEUK53HE000051";
+        String rowKey = "1319000LGWEEUK53HE000051OVERVIEW#######20180913155316####0001";
+        DataPackOverview overview = bigTable.getData(rowKey, DataPackOverview.class);
+        System.out.println(overview);
+    }
+
+    @Test
+    @Ignore
+    public void testPageSizeIssue() {
+        List<DataPackOverview> dataPackOverviewList = bigTable.queryData("LL66HAB06HB050029", DataPackOverview.class, 1, null);
+        dataPackOverviewList.forEach(object -> System.out.println(object.getId())); //record count -> 3
+
+//        DataPackOverview dataPackOverview = bigTable.getData("LL66HAB06HB050029", DataPackOverview.class, IBigTable.Sort.DESC);
+//        System.out.println(dataPackOverview);
     }
 }
