@@ -38,9 +38,7 @@ public class HBaseBigTableTest {
     /**
      * HBase数据表和列名
      */
-    private static final String TABLE_NAME_VEHICLE = "gmmc:vehicle";
     private static final String TABLE_NAME_TELEMETRY = "gmmc:telemetry";
-    private static final String COLUMN_FAMILY_NAME = "base";
 
     /**
      * 操作对象
@@ -55,7 +53,7 @@ public class HBaseBigTableTest {
         props.put("hbase.zookeeper.quorum", HBASE_ZK_QUORUM);
         props.put("hbase.zookeeper.property.clientPort", HBASE_Zk_PORT);
         props.put("hbase.master", HBASE_MASTER);
-        bigTable = new HBaseBigTable(props, TABLE_NAME_TELEMETRY, TABLE_NAME_VEHICLE);
+        bigTable = new HBaseBigTable(props, TABLE_NAME_TELEMETRY);
 
         // Connection
         Configuration configuration = HBaseConfiguration.create();
@@ -155,7 +153,7 @@ public class HBaseBigTableTest {
     }
 
     @Test
-//    @Ignore
+    @Ignore
     public void testQueryTrips() {
         List<DataPackTrip> tripList = bigTable.queryData("LSBAAAAAAZZ000008", DataPackTrip.class, 5, null);
         tripList.forEach(object -> System.out.println(object.getId()));
@@ -181,7 +179,7 @@ public class HBaseBigTableTest {
     }
 
     @Test
-//    @Ignore
+    @Ignore
     public void testQueryOverviewByRowKey() {
         //String rowKey = "LGWEEUK53HE000051";
         String rowKey = "1319000LGWEEUK53HE000051OVERVIEW#######20180913155316####0001";
