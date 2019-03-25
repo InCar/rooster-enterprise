@@ -33,11 +33,6 @@ public class HBaseBigTable implements IBigTable {
     private static Logger logger = LoggerFactory.getLogger(HBaseBigTable.class);
 
     /**
-     * 车辆VIN存储表名
-     */
-    private static String TABLE_NAME_VEHICLE;
-
-    /**
      * 车辆数据存储表名
      */
     private static String TABLE_NAME_TELEMETRY;
@@ -67,19 +62,15 @@ public class HBaseBigTable implements IBigTable {
      *
      * @param props              HBase连接属性
      * @param telemetryTableName 车辆数据存储表名
-     * @param vehicleTableName   车辆VIN存储表名
      * @throws IOException
      */
-    public HBaseBigTable(Properties props, String telemetryTableName, String vehicleTableName) throws IOException {
+    public HBaseBigTable(Properties props, String telemetryTableName) throws IOException {
         // 校验参数合法性
         if (!validate(props)) {
             throw new IllegalArgumentException();
         }
         if (null == System.getenv("HADOOP_HOME")) {
             throw new IllegalArgumentException("environment variable 'HADOOP_HOME' is null!");
-        }
-        if (StringUtils.isBlank(vehicleTableName) || StringUtils.isBlank(telemetryTableName)) {
-            throw new IllegalArgumentException("storage table name is null!");
         }
 
         // 创建HBase连接对象
@@ -91,7 +82,6 @@ public class HBaseBigTable implements IBigTable {
 
         // 设置数据表常量
         TABLE_NAME_TELEMETRY = telemetryTableName;
-        TABLE_NAME_VEHICLE = vehicleTableName;
     }
 
     /**
@@ -137,20 +127,6 @@ public class HBaseBigTable implements IBigTable {
 
         // 打印日志
         logger.debug("Save data pack object for vin({}) by {} success!", data.getVin(), rowKey);
-    }
-
-    @Override
-    public void saveVin(String vin) throws Exception {
-        // Table对象线程不安全
-        Table dataTable = connection.getTable(TableName.valueOf(TABLE_NAME_VEHICLE));
-
-        // 一个PUT代表一行数据，rowKey为车辆VIN
-        Put put = new Put(vin.getBytes());
-        put.addColumn(Bytes.toBytes(COLUMN_FAMILY_NAME), Bytes.toBytes(COLUMN_NAME_DATA), Bytes.toBytes(vin));
-        dataTable.put(put);
-
-        // 打印日志
-        logger.debug("Save vin({}) success!", vin);
     }
 
     @Override
