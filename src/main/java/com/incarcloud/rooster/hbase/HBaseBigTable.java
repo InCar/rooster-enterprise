@@ -15,10 +15,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.Properties;
+import java.util.*;
 
 /**
  * @author Fan Beibei
@@ -127,6 +124,34 @@ public class HBaseBigTable implements IBigTable {
 
         // 打印日志
         logger.debug("Save data pack object for vin({}) by {} success!", data.getVin(), rowKey);
+    }
+
+    @Override
+    public void batchSaveDataPackObjects(Map<String, DataPackObject> data) throws Exception {
+        // Table对象线程不安全
+        Table table = connection.getTable(TableName.valueOf(TABLE_NAME_TELEMETRY));
+
+        // 批量保持数据
+        if(null != data && 0 < data.size()) {
+            Put put;
+            DataPackObject object;
+            List<Put> putList = new ArrayList<>();
+            for(String key: data.keySet()) {
+                // 获得datapack对象
+                object = data.get(key);
+
+                // 组装数据集合
+                put = new Put(key.getBytes());
+                put.addColumn(Bytes.toBytes(COLUMN_FAMILY_NAME), Bytes.toBytes(COLUMN_NAME_DATA), Bytes.toBytes(DataPackObjectUtil.toJson(object)));
+                putList.add(put);
+            }
+
+            // 批量写入到HBase数据库
+            table.put(putList);
+
+            // 打印日志
+            logger.debug("Batch save data pack list of {} success!", putList.size());
+        }
     }
 
     @Override
