@@ -127,6 +127,19 @@ public class HBaseBigTable implements IBigTable {
     }
 
     @Override
+    public void saveDataPackObject(String rowKey, DataPackObject data, String month) throws Exception {
+        // Table对象线程不安全
+        Table table = connection.getTable(TableName.valueOf(TABLE_NAME_TELEMETRY + "_" + month));
+        // 一个PUT代表一行数据，rowKey由参数列表传入
+        Put put = new Put(rowKey.getBytes());
+        put.addColumn(Bytes.toBytes(COLUMN_FAMILY_NAME), Bytes.toBytes(COLUMN_NAME_DATA), Bytes.toBytes(DataPackObjectUtil.toJson(data)));
+        table.put(put);
+
+        // 打印日志
+        logger.debug("Save data pack object for vin({}) by {} success!", data.getVin(), rowKey);
+    }
+
+    @Override
     public void batchSaveDataPackObjects(Map<String, DataPackObject> data) throws Exception {
         // Table对象线程不安全
         Table table = connection.getTable(TableName.valueOf(TABLE_NAME_TELEMETRY));
@@ -156,14 +169,22 @@ public class HBaseBigTable implements IBigTable {
 
     @Override
     public <T extends DataPackObject> T getData(String rowKey, Class<T> clazz) {
+        return getData(rowKey, null, clazz);
+    }
+
+    @Override
+    public <T extends DataPackObject> T getData(String rowKey, String month, Class<T> clazz) {
         // 验证参数信息
         if (StringUtils.isBlank(rowKey)) {
             throw new IllegalArgumentException("the row key can't be null");
         }
-
         try {
-            // 读取数据
-            Table table = connection.getTable(TableName.valueOf(TABLE_NAME_TELEMETRY));
+            Table table;
+            if (StringUtils.isBlank(month)) {
+                table = connection.getTable(TableName.valueOf(TABLE_NAME_TELEMETRY));
+            } else {
+                table = connection.getTable(TableName.valueOf(TABLE_NAME_TELEMETRY + "_" + month));
+            }
             Result result = table.get(new Get(Bytes.toBytes(rowKey)));
 
             // 获得json字符串
@@ -198,7 +219,23 @@ public class HBaseBigTable implements IBigTable {
     }
 
     @Override
+    public <T extends DataPackObject> T getData(String vin, String month, Class<T> clazz, Sort sort) {
+        // 读取最早或最近的一条记录
+        List<T> dataList = queryData(vin, month, clazz, sort, null, null, 1, null);
+        if (null != dataList && 0 < dataList.size()) {
+            // 返回数据记录
+            return dataList.get(0);
+        }
+        return null;
+    }
+
+    @Override
     public <T extends DataPackObject> List<T> queryData(String vin, Class<T> clazz, Date startTime, Date endTime) {
+       return queryData(vin, null, clazz, startTime, endTime);
+    }
+
+    @Override
+    public <T extends DataPackObject> List<T> queryData(String vin, String month, Class<T> clazz, Date startTime, Date endTime) {
         // 验证参数信息
         if (null == vin || null == startTime || null == endTime) {
             throw new IllegalArgumentException("the params can't be null");
@@ -210,8 +247,13 @@ public class HBaseBigTable implements IBigTable {
 
         // 读取数据
         try {
+            Table table;
             // 根据开始和结束时间查询数据
-            Table table = connection.getTable(TableName.valueOf(TABLE_NAME_TELEMETRY));
+            if (StringUtils.isBlank(month)) {
+                table = connection.getTable(TableName.valueOf(TABLE_NAME_TELEMETRY));
+            } else {
+                table = connection.getTable(TableName.valueOf(TABLE_NAME_TELEMETRY + "_" + month));
+            }
 
             // 构建查询条件
             Scan scan = new Scan();
@@ -259,13 +301,27 @@ public class HBaseBigTable implements IBigTable {
         return null;
     }
 
+
     @Override
     public <T extends DataPackObject> List<T> queryData(String vin, Class<T> clazz, Integer pageSize, String startKey) {
         return queryData(vin, clazz, Sort.DESC, null, null, pageSize, startKey);
     }
 
+
+    @Override
+    public <T extends DataPackObject> List<T> queryData(String vin, String month, Class<T> clazz, Integer pageSize, String startKey) {
+        return queryData(vin, month, clazz, Sort.DESC, null, null, pageSize, startKey);
+    }
+
+
     @Override
     public <T extends DataPackObject> List<T> queryData(String vin, Class<T> clazz, Sort sort, Date startTime, Date endTime, Integer pageSize, String startKey) {
+        return queryData(vin, null, clazz, sort, startTime, endTime, pageSize, startKey);
+    }
+
+
+    @Override
+    public <T extends DataPackObject> List<T> queryData(String vin, String month, Class<T> clazz, Sort sort, Date startTime, Date endTime, Integer pageSize, String startKey) {
         // 验证参数信息
         if (null == vin || null == pageSize) {
             throw new IllegalArgumentException("the params can't be null");
@@ -273,8 +329,12 @@ public class HBaseBigTable implements IBigTable {
 
         // 读取数据
         try {
-            // 查询表
-            Table table = connection.getTable(TableName.valueOf(TABLE_NAME_TELEMETRY));
+            Table table;
+            if (StringUtils.isBlank(month)) {
+                table = connection.getTable(TableName.valueOf(TABLE_NAME_TELEMETRY));
+            } else {
+                table = connection.getTable(TableName.valueOf(TABLE_NAME_TELEMETRY + "_" + month));
+            }
 
             // 构建查询条件
             Scan scan = new Scan();
@@ -381,7 +441,6 @@ public class HBaseBigTable implements IBigTable {
         } catch (IOException e) {
             e.printStackTrace();
         }
-
         return null;
     }
 
